@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Golang on My New Hugo Site</title>
-    <link>https://example.org/tags/golang/</link>
-    <description>Recent content in Golang on My New Hugo Site</description>
+    <title>Golang on 日常学习记录总结</title>
+    <link>https://andyspf.github.io/tags/golang/</link>
+    <description>Recent content in Golang on 日常学习记录总结</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 10 Jan 2021 00:00:00 +0000</lastBuildDate>
-    <atom:link href="https://example.org/tags/golang/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://andyspf.github.io/tags/golang/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>defer引出的go函数调用惯例</title>
-      <link>https://example.org/posts/trap8_defer/</link>
+      <link>https://andyspf.github.io/posts/trap8_defer/</link>
       <pubDate>Sun, 10 Jan 2021 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap8_defer/</guid>
+      <guid>https://andyspf.github.io/posts/trap8_defer/</guid>
       <description>问题 defer执行顺序是个老生常谈的问题，其顺序应该如下：&#xA;return后如果有可计算表达式则先进行计算 检查是否有defer，如果有则从最后一个defer开始执行 顺序执行完所有defer，执行RET 额外需要注意，如果以传参方式传入defer一个变量，则以复制值的方式传入，值为定义defer时变量的值。 但是今天又被下面两种情况搞迷糊了，返回值是否匿名导致了结果完全不同：&#xA;func g1() int { var b int defer func() { b++ }() return b } // 返回0 func g2() (b int) { defer func() { b++ }() return b } // 返回1 猜想 在匿名函数返回值中，需要在函数中重新申请地址存放返回值，整个函数里包括defer都是对这个地址的值进行的处理。但是由于go函数的调用惯例是调用者预留被调用函数的返回值空间，且一般（不考虑逃逸分析的情况）是在栈上预定的位子。因此在return时会把这个值放回预留出来的位置上，然后执行defer的逻辑。因此defer虽然把函数内的临时变量改变了，但是已经放到栈上的内容却没有变，调用者最终拿到的也是提前预留在栈上的地址表示的数。&#xA;有名字的返回值情况下：栈中预留位置就是整个被调用者计算并赋值的位置。包括defer函数中的计算。&#xA;接下来奉献出plan9的第一次，尝试通过看一下汇编来确定猜想：&#xA;匿名返回值情况下： //go:noinline func myFunction() int { var myNum int defer func() { myNum += 7 }() myNum += 3 return myNum } func main() { myFunction() } 执行 go tool compile -N -S -l main.</description>
     </item>
     <item>
       <title>golang代码内更改os.Stderr</title>
-      <link>https://example.org/posts/trap6_golang_err_redirect/</link>
+      <link>https://andyspf.github.io/posts/trap6_golang_err_redirect/</link>
       <pubDate>Fri, 18 Sep 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap6_golang_err_redirect/</guid>
+      <guid>https://andyspf.github.io/posts/trap6_golang_err_redirect/</guid>
       <description>问题 尝试把某一个程序的标准错误和标准输出分开，于是分别给os.Stdout和os.Stderr指向了一个文件句柄。 测试发现：标准输出可以正常写入对应文件，但是故意留出的panic制造的标准错误却没写入。 解决 查了一圈发现是什么上层包的变量想赋值到底层runtime包是不行的。挺奇怪的。 不过倒是给出了解决方案 // 通过Dup2的系统调用复制文件描述符 if err = syscall.Dup2(int(file.Fd()), int(os.Stderr.Fd())); err != nil { fmt.Println(err) return err } // 内存回收前关闭文件描述符,该方法将一个对象和一个处理函数相关联，当这个对象处于不可访问时将会执行他的关联函数并解除关联。 下一次gc到达时他不可达且没有关联函数，此时就会删除它。实例：os.NewFile() runtime.SetFinalizer(stdErrFileHandler, func(fd *os.File) { fd.Close() }) 经验证：这样改动后panic日志可以正确写入指定的file</description>
     </item>
   </channel>

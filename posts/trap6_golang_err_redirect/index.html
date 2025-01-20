@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>golang代码内更改os.Stderr | My New Hugo Site</title>
+    <title>golang代码内更改os.Stderr | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="问题 尝试把某一个程序的标准错误和标准输出分开，于是分别给os.Stdout和os.Stderr指向了一个文件句柄。 测试发现：标准输出可以正常写入对应文件，但是故意留出的panic制造的标准错误却没写入。 解决 查了一圈发现是什么上层包的变量想赋值到底层runtime包是不行的。挺奇怪的。 不过倒是给出了解决方案 // 通过Dup2的系统调用复制文件描述符 if err = syscall.Dup2(int(file.Fd()), int(os.Stderr.Fd())); err != nil { fmt.Println(err) return err } // 内存回收前关闭文件描述符,该方法将一个对象和一个处理函数相关联，当这个对象处于不可访问时将会执行他的关联函数并解除关联。 下一次gc到达时他不可达且没有关联函数，此时就会删除它。实例：os.NewFile() runtime.SetFinalizer(stdErrFileHandler, func(fd *os.File) { fd.Close() }) 经验证：这样改动后panic日志可以正确写入指定的file">
     <meta name="generator" content="Hugo 0.133.0">
@@ -33,11 +33,11 @@
     
 
     
-      <link rel="canonical" href="https://example.org/posts/trap6_golang_err_redirect/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/trap6_golang_err_redirect/">
     
 
-    <meta property="og:url" content="https://example.org/posts/trap6_golang_err_redirect/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/trap6_golang_err_redirect/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="golang代码内更改os.Stderr">
   <meta property="og:description" content="问题 尝试把某一个程序的标准错误和标准输出分开，于是分别给os.Stdout和os.Stderr指向了一个文件句柄。 测试发现：标准输出可以正常写入对应文件，但是故意留出的panic制造的标准错误却没写入。 解决 查了一圈发现是什么上层包的变量想赋值到底层runtime包是不行的。挺奇怪的。 不过倒是给出了解决方案 // 通过Dup2的系统调用复制文件描述符 if err = syscall.Dup2(int(file.Fd()), int(os.Stderr.Fd())); err != nil { fmt.Println(err) return err } // 内存回收前关闭文件描述符,该方法将一个对象和一个处理函数相关联，当这个对象处于不可访问时将会执行他的关联函数并解除关联。 下一次gc到达时他不可达且没有关联函数，此时就会删除它。实例：os.NewFile() runtime.SetFinalizer(stdErrFileHandler, func(fd *os.File) { fd.Close() }) 经验证：这样改动后panic日志可以正确写入指定的file">
   <meta property="og:locale" content="en_us">
@@ -73,7 +73,7 @@
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -209,8 +209,8 @@
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

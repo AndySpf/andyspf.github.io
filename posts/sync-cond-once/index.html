@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>golang官方包源码阅读记录 sync.Cond和sync.Once | My New Hugo Site</title>
+    <title>golang官方包源码阅读记录 sync.Cond和sync.Once | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="功能介绍 sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。 sync.Once可以保证一段代码只执行一次。 源码阅读 sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。
 使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。 解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。
@@ -39,11 +39,11 @@ type copyChecker uintptr func (c *copyChecker) check() { // 一个实例Cond，�
     
 
     
-      <link rel="canonical" href="https://example.org/posts/sync-cond-once/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/sync-cond-once/">
     
 
-    <meta property="og:url" content="https://example.org/posts/sync-cond-once/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/sync-cond-once/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="golang官方包源码阅读记录 sync.Cond和sync.Once">
   <meta property="og:description" content="功能介绍 sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。 sync.Once可以保证一段代码只执行一次。 源码阅读 sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。
 使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。 解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。
@@ -97,7 +97,7 @@ type copyChecker uintptr func (c *copyChecker) check() { // 一个实例Cond，�
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -305,8 +305,8 @@ Broadcast()功能为通知全部groutine   <br>
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

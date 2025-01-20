@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>golang官方包源码阅读记录 sync.RWMutex | My New Hugo Site</title>
+    <title>golang官方包源码阅读记录 sync.RWMutex | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="功能介绍 sync.Mutex是golang官方实现的读写互斥锁。目的是为了在读写分离的场景下提高锁的效率。该锁不限制并发读，但是对于并发读写以及并发写作限制 源码阅读 读写锁复用了Mutex的功能用于对写并发进行阻塞。对于读写分离方面，没有很复杂的逻辑，利用计数器以及groutine唤醒机制进行读写锁分离。
 结构 type RWMutex struct { w Mutex // 如果有写并发参与，则复用Mutex的功能进行阻塞 writerSem uint32 // 写角色信号量 readerSem uint32 // 读角色信号量 readerCount int32 // 当前有多少读并发 readerWait int32 // 开始进行写操作是有多少读操作未完成。需要写操作等待其完成 } 方法 RWMutex提供了Lock(),Unlock(),RLock(),RUnlock()四个方法来实现读写分离锁。
@@ -36,11 +36,11 @@ func (rw *RWMutex) Lock() { if race.Enabled { _ = rw.w.state race.Disable() } //
     
 
     
-      <link rel="canonical" href="https://example.org/posts/sync-rwmutex/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/sync-rwmutex/">
     
 
-    <meta property="og:url" content="https://example.org/posts/sync-rwmutex/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/sync-rwmutex/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="golang官方包源码阅读记录 sync.RWMutex">
   <meta property="og:description" content="功能介绍 sync.Mutex是golang官方实现的读写互斥锁。目的是为了在读写分离的场景下提高锁的效率。该锁不限制并发读，但是对于并发读写以及并发写作限制 源码阅读 读写锁复用了Mutex的功能用于对写并发进行阻塞。对于读写分离方面，没有很复杂的逻辑，利用计数器以及groutine唤醒机制进行读写锁分离。
 结构 type RWMutex struct { w Mutex // 如果有写并发参与，则复用Mutex的功能进行阻塞 writerSem uint32 // 写角色信号量 readerSem uint32 // 读角色信号量 readerCount int32 // 当前有多少读并发 readerWait int32 // 开始进行写操作是有多少读操作未完成。需要写操作等待其完成 } 方法 RWMutex提供了Lock(),Unlock(),RLock(),RUnlock()四个方法来实现读写分离锁。
@@ -85,7 +85,7 @@ func (rw *RWMutex) Lock() { if race.Enabled { _ = rw.w.state race.Disable() } //
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -304,8 +304,8 @@ func (rw *RWMutex) Lock() { if race.Enabled { _ = rw.w.state race.Disable() } //
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

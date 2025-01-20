@@ -4,11 +4,11 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>golang官方包源码阅读记录 sync.Map | My New Hugo Site</title>
+    <title>golang官方包源码阅读记录 sync.Map | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
-    <meta name="description" content="功能介绍 源码阅读 结构 方法 Add()
-Wait()
-state()">
+    <meta name="description" content="功能介绍 sync.Map是一个并发安全的散列表，从结构上来看类似于map[interface{}]interface{}。
+虽然使用这个不需要考虑读写竞争问题，但是不能滥用。大多数情况下还是应该使用普通的map和Mutex组合来进行控制。 其整体思想是分隔，将安全的数据和不安全数据分隔，安全的数据可以避免昂贵的锁操作直接读和更新。当不安全数据过多时， 将其升级为安全数据。这是符合官方建议使用的少写多读场景的。
+源码阅读 结构 // sync.Map是一个类似map[interface{}]interface{}的结构，但是他是并发安全的，多个groutine同时读写不需要 // 额外的添加锁，读取，存储和删除平均时间复杂度为常量级别 // sync.Map更适合用在特定场景，大多数还是应该使用go自带的map。显式的使用锁来保护map内数据。 // sync.Map类型主要适用于以下两个场景： // (1) 对于一个key，只有一次写入，但却有很多次读写（多读少写），类似不断增长的缓存 // (2) 当多个goroutine读写或者覆盖多个不相交的key // 在这两种场景下使用sync.Map会大大减少锁竞争。 // sync.Map的零值是可以使用的，一个Map在第一次使用后不能复制 type Map struct { mu Mutex // read包含散列表内容中可以安全读的一部分，有没有锁都没关系，都可以并发读 // 更新一个已经存在的内容可以不使用锁，但是更新一个已经删除的内容必须把当前entry拷贝到dirty中并且使用锁进行更新。 // read实际存储的是readOnly结构体 read atomic.Value // readOnly // dirty包含Map中需要加锁的那部分数据。为了确保dirty中的内容可以快速的升级到read。他还包含了read中所有没有删除的entry // 删除了的entry不需要再存储在dirty中，一个已删除的entry如果在read中必须要保证其不被真正删除，且在一个新值可以被存储进read前将其添加到dirty // 如果entry是nil，则下一次写操作将会浅拷贝read的内容用来初始化它。 dirty map[interface{}]*entry // misses 统计了从read上一次更新开始执行的loads次数，需要锁来确定key是否存在。 // 一旦misses次数足够，则dirty升级到read(amended=false)，下一次写操作会重新建一个新的dirty misses int } // An entry is a slot in the map corresponding to a particular key.">
     <meta name="generator" content="Hugo 0.133.0">
     
     
@@ -35,36 +35,36 @@ state()">
     
 
     
-      <link rel="canonical" href="https://example.org/posts/sync-map/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/sync-map/">
     
 
-    <meta property="og:url" content="https://example.org/posts/sync-map/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/sync-map/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="golang官方包源码阅读记录 sync.Map">
-  <meta property="og:description" content="功能介绍 源码阅读 结构 方法 Add()
-Wait()
-state()">
+  <meta property="og:description" content="功能介绍 sync.Map是一个并发安全的散列表，从结构上来看类似于map[interface{}]interface{}。
+虽然使用这个不需要考虑读写竞争问题，但是不能滥用。大多数情况下还是应该使用普通的map和Mutex组合来进行控制。 其整体思想是分隔，将安全的数据和不安全数据分隔，安全的数据可以避免昂贵的锁操作直接读和更新。当不安全数据过多时， 将其升级为安全数据。这是符合官方建议使用的少写多读场景的。
+源码阅读 结构 // sync.Map是一个类似map[interface{}]interface{}的结构，但是他是并发安全的，多个groutine同时读写不需要 // 额外的添加锁，读取，存储和删除平均时间复杂度为常量级别 // sync.Map更适合用在特定场景，大多数还是应该使用go自带的map。显式的使用锁来保护map内数据。 // sync.Map类型主要适用于以下两个场景： // (1) 对于一个key，只有一次写入，但却有很多次读写（多读少写），类似不断增长的缓存 // (2) 当多个goroutine读写或者覆盖多个不相交的key // 在这两种场景下使用sync.Map会大大减少锁竞争。 // sync.Map的零值是可以使用的，一个Map在第一次使用后不能复制 type Map struct { mu Mutex // read包含散列表内容中可以安全读的一部分，有没有锁都没关系，都可以并发读 // 更新一个已经存在的内容可以不使用锁，但是更新一个已经删除的内容必须把当前entry拷贝到dirty中并且使用锁进行更新。 // read实际存储的是readOnly结构体 read atomic.Value // readOnly // dirty包含Map中需要加锁的那部分数据。为了确保dirty中的内容可以快速的升级到read。他还包含了read中所有没有删除的entry // 删除了的entry不需要再存储在dirty中，一个已删除的entry如果在read中必须要保证其不被真正删除，且在一个新值可以被存储进read前将其添加到dirty // 如果entry是nil，则下一次写操作将会浅拷贝read的内容用来初始化它。 dirty map[interface{}]*entry // misses 统计了从read上一次更新开始执行的loads次数，需要锁来确定key是否存在。 // 一旦misses次数足够，则dirty升级到read(amended=false)，下一次写操作会重新建一个新的dirty misses int } // An entry is a slot in the map corresponding to a particular key.">
   <meta property="og:locale" content="en_us">
   <meta property="og:type" content="article">
     <meta property="article:section" content="posts">
-    <meta property="article:published_time" content="2020-11-10T00:00:00+00:00">
-    <meta property="article:modified_time" content="2020-11-10T00:00:00+00:00">
+    <meta property="article:published_time" content="2020-11-18T00:00:00+00:00">
+    <meta property="article:modified_time" content="2020-11-18T00:00:00+00:00">
     <meta property="article:tag" content="源码">
     <meta property="article:tag" content="Sync">
 
   <meta itemprop="name" content="golang官方包源码阅读记录 sync.Map">
-  <meta itemprop="description" content="功能介绍 源码阅读 结构 方法 Add()
-Wait()
-state()">
-  <meta itemprop="datePublished" content="2020-11-10T00:00:00+00:00">
-  <meta itemprop="dateModified" content="2020-11-10T00:00:00+00:00">
-  <meta itemprop="wordCount" content="7">
+  <meta itemprop="description" content="功能介绍 sync.Map是一个并发安全的散列表，从结构上来看类似于map[interface{}]interface{}。
+虽然使用这个不需要考虑读写竞争问题，但是不能滥用。大多数情况下还是应该使用普通的map和Mutex组合来进行控制。 其整体思想是分隔，将安全的数据和不安全数据分隔，安全的数据可以避免昂贵的锁操作直接读和更新。当不安全数据过多时， 将其升级为安全数据。这是符合官方建议使用的少写多读场景的。
+源码阅读 结构 // sync.Map是一个类似map[interface{}]interface{}的结构，但是他是并发安全的，多个groutine同时读写不需要 // 额外的添加锁，读取，存储和删除平均时间复杂度为常量级别 // sync.Map更适合用在特定场景，大多数还是应该使用go自带的map。显式的使用锁来保护map内数据。 // sync.Map类型主要适用于以下两个场景： // (1) 对于一个key，只有一次写入，但却有很多次读写（多读少写），类似不断增长的缓存 // (2) 当多个goroutine读写或者覆盖多个不相交的key // 在这两种场景下使用sync.Map会大大减少锁竞争。 // sync.Map的零值是可以使用的，一个Map在第一次使用后不能复制 type Map struct { mu Mutex // read包含散列表内容中可以安全读的一部分，有没有锁都没关系，都可以并发读 // 更新一个已经存在的内容可以不使用锁，但是更新一个已经删除的内容必须把当前entry拷贝到dirty中并且使用锁进行更新。 // read实际存储的是readOnly结构体 read atomic.Value // readOnly // dirty包含Map中需要加锁的那部分数据。为了确保dirty中的内容可以快速的升级到read。他还包含了read中所有没有删除的entry // 删除了的entry不需要再存储在dirty中，一个已删除的entry如果在read中必须要保证其不被真正删除，且在一个新值可以被存储进read前将其添加到dirty // 如果entry是nil，则下一次写操作将会浅拷贝read的内容用来初始化它。 dirty map[interface{}]*entry // misses 统计了从read上一次更新开始执行的loads次数，需要锁来确定key是否存在。 // 一旦misses次数足够，则dirty升级到read(amended=false)，下一次写操作会重新建一个新的dirty misses int } // An entry is a slot in the map corresponding to a particular key.">
+  <meta itemprop="datePublished" content="2020-11-18T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-11-18T00:00:00+00:00">
+  <meta itemprop="wordCount" content="805">
   <meta itemprop="keywords" content="源码,Sync">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="golang官方包源码阅读记录 sync.Map">
-  <meta name="twitter:description" content="功能介绍 源码阅读 结构 方法 Add()
-Wait()
-state()">
+  <meta name="twitter:description" content="功能介绍 sync.Map是一个并发安全的散列表，从结构上来看类似于map[interface{}]interface{}。
+虽然使用这个不需要考虑读写竞争问题，但是不能滥用。大多数情况下还是应该使用普通的map和Mutex组合来进行控制。 其整体思想是分隔，将安全的数据和不安全数据分隔，安全的数据可以避免昂贵的锁操作直接读和更新。当不安全数据过多时， 将其升级为安全数据。这是符合官方建议使用的少写多读场景的。
+源码阅读 结构 // sync.Map是一个类似map[interface{}]interface{}的结构，但是他是并发安全的，多个groutine同时读写不需要 // 额外的添加锁，读取，存储和删除平均时间复杂度为常量级别 // sync.Map更适合用在特定场景，大多数还是应该使用go自带的map。显式的使用锁来保护map内数据。 // sync.Map类型主要适用于以下两个场景： // (1) 对于一个key，只有一次写入，但却有很多次读写（多读少写），类似不断增长的缓存 // (2) 当多个goroutine读写或者覆盖多个不相交的key // 在这两种场景下使用sync.Map会大大减少锁竞争。 // sync.Map的零值是可以使用的，一个Map在第一次使用后不能复制 type Map struct { mu Mutex // read包含散列表内容中可以安全读的一部分，有没有锁都没关系，都可以并发读 // 更新一个已经存在的内容可以不使用锁，但是更新一个已经删除的内容必须把当前entry拷贝到dirty中并且使用锁进行更新。 // read实际存储的是readOnly结构体 read atomic.Value // readOnly // dirty包含Map中需要加锁的那部分数据。为了确保dirty中的内容可以快速的升级到read。他还包含了read中所有没有删除的entry // 删除了的entry不需要再存储在dirty中，一个已删除的entry如果在read中必须要保证其不被真正删除，且在一个新值可以被存储进read前将其添加到dirty // 如果entry是nil，则下一次写操作将会浅拷贝read的内容用来初始化它。 dirty map[interface{}]*entry // misses 统计了从read上一次更新开始执行的loads次数，需要锁来确定key是否存在。 // 一旦misses次数足够，则dirty升级到read(amended=false)，下一次写操作会重新建一个新的dirty misses int } // An entry is a slot in the map corresponding to a particular key.">
 
 	
   </head>
@@ -81,7 +81,7 @@ state()">
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -135,20 +135,316 @@ state()">
       
       
       
-      <time class="f6 mv4 dib tracked" datetime="2020-11-10T00:00:00Z">November 10, 2020</time>
+      <time class="f6 mv4 dib tracked" datetime="2020-11-18T00:00:00Z">November 18, 2020</time>
       
 
       
       
     </header>
     <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><h2 id="功能介绍">功能介绍</h2>
+<p>sync.Map是一个并发安全的散列表，从结构上来看类似于map[interface{}]interface{}。<br>
+虽然使用这个不需要考虑读写竞争问题，但是不能滥用。大多数情况下还是应该使用普通的map和Mutex组合来进行控制。
+其整体思想是分隔，将安全的数据和不安全数据分隔，安全的数据可以避免昂贵的锁操作直接读和更新。当不安全数据过多时，
+将其升级为安全数据。这是符合官方建议使用的少写多读场景的。</p>
 <h2 id="源码阅读">源码阅读</h2>
 <h3 id="结构">结构</h3>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"></code></pre></div><h3 id="方法">方法</h3>
-<p><em><strong>Add()</strong></em></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"></code></pre></div><p><em><strong>Wait()</strong></em></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"></code></pre></div><p><em><strong>state()</strong></em></p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"></code></pre></div><ul class="pa0">
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// sync.Map是一个类似map[interface{}]interface{}的结构，但是他是并发安全的，多个groutine同时读写不需要
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 额外的添加锁，读取，存储和删除平均时间复杂度为常量级别
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// sync.Map更适合用在特定场景，大多数还是应该使用go自带的map。显式的使用锁来保护map内数据。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// sync.Map类型主要适用于以下两个场景：
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// (1) 对于一个key，只有一次写入，但却有很多次读写（多读少写），类似不断增长的缓存
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// (2) 当多个goroutine读写或者覆盖多个不相交的key
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 在这两种场景下使用sync.Map会大大减少锁竞争。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// sync.Map的零值是可以使用的，一个Map在第一次使用后不能复制
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Map</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">mu</span> <span style="color:#a6e22e">Mutex</span>    
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// read包含散列表内容中可以安全读的一部分，有没有锁都没关系，都可以并发读
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 更新一个已经存在的内容可以不使用锁，但是更新一个已经删除的内容必须把当前entry拷贝到dirty中并且使用锁进行更新。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// read实际存储的是readOnly结构体
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">read</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">Value</span> <span style="color:#75715e">// readOnly
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// dirty包含Map中需要加锁的那部分数据。为了确保dirty中的内容可以快速的升级到read。他还包含了read中所有没有删除的entry
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 删除了的entry不需要再存储在dirty中，一个已删除的entry如果在read中必须要保证其不被真正删除，且在一个新值可以被存储进read前将其添加到dirty
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果entry是nil，则下一次写操作将会浅拷贝read的内容用来初始化它。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">dirty</span> <span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">interface</span>{}]<span style="color:#f92672">*</span><span style="color:#a6e22e">entry</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// misses 统计了从read上一次更新开始执行的loads次数，需要锁来确定key是否存在。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 一旦misses次数足够，则dirty升级到read(amended=false)，下一次写操作会重新建一个新的dirty
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">misses</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// An entry is a slot in the map corresponding to a particular key.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">entry</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// p 指向存储在entry中的interface类型的值，他有三种取值方案：
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>   	<span style="color:#75715e">// 1. p==nil，entry已经被删除了，且m.dirty==nil 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 2. p==expunged, entry已经被删除，但是m.dirty!=nil，而且这个entry在dirty中是没有的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 3. 普通值， 这个entry是有效的而且被记录在read中，如果dirty!=nil则也记录在dirty中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 一个entry可以通过原子操作将值替换为nil来模拟删除操作。当dirty是下一个创建的，他会原子性的使用expunged替换nil
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 并且保留dirty未设置状态。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果p!=expunged，一个entry相关的值可以被原子性的更新。如果p==expunged则必须要先设置m.dirty[key] = e
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 然后才可以更新
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">p</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span> <span style="color:#75715e">// *interface{}
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// readOnly 是一个以原子方式存储在Map.read中的不可变结构体
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">readOnly</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>       <span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">interface</span>{}]<span style="color:#f92672">*</span><span style="color:#a6e22e">entry</span>      
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">amended</span> <span style="color:#66d9ef">bool</span> <span style="color:#75715e">// 如果dirty中有readOnly.m中没有的内容，则amended=true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// expunged表示一个entry已经从dirty中被删除了，这个值只会在store时复制read到dirty时赋给那些值为nil的entry
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">expunged</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(new(<span style="color:#66d9ef">interface</span>{}))
+</span></span></code></pre></div><p>从结构体可以看出来，优化点肯定是在于：让某些情况下可以不用加锁就实现并发安全。某些情况其实就是read中的数据了。</p>
+<h3 id="方法">方法</h3>
+<p><em><strong>Store()</strong></em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// 设置一对key-value
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Map</span>) <span style="color:#a6e22e">Store</span>(<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">value</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>) 
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果read中存在该m，且tryStore成功，则直接返回，不用进行昂贵的锁操作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">key</span>]; <span style="color:#a6e22e">ok</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">tryStore</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">value</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()   
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// atomic.Value的Load()方法返回最近设置进去的值，在上面操作的那一段时间内可能有新的值被设置进去
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)  
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">key</span>]; <span style="color:#a6e22e">ok</span> {  <span style="color:#75715e">// read中存在
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">unexpungeLocked</span>() { 
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 这个entry之前被删除过，这意味着肯定有一个非空的dirty且这个值在dirty中没有
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#75715e">// 原因是dirty升级上来的read肯定没有删除标记，有则证明升级后有经历m.dirtyLocked()操作，因此dirty一定非空
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>[<span style="color:#a6e22e">key</span>] = <span style="color:#a6e22e">e</span>     
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">storeLocked</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">value</span>)   <span style="color:#75715e">// 加锁的条件下，在read中强制存储该值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	} <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>[<span style="color:#a6e22e">key</span>]; <span style="color:#a6e22e">ok</span> { <span style="color:#75715e">// read中不存在但是dirty中存在
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">storeLocked</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">value</span>)   <span style="color:#75715e">// 加锁的条件下，在dirty中强制存储该值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	} <span style="color:#66d9ef">else</span> {   <span style="color:#75715e">// read和dirty中都不存在
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">amended</span> {  <span style="color:#75715e">// 如果read和dirty还没有差异
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#75715e">// 将要给dirty中添加新的key
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#75715e">// 确保它已经被分配(dirty不为nil)，并且将read改为有差异
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirtyLocked</span>()   <span style="color:#75715e">// 查看dirty如果他不是nil则直接返回，是nil的话需要把read中未删除部分拷贝一份
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Store</span>(<span style="color:#a6e22e">readOnly</span>{<span style="color:#a6e22e">m</span>: <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>, <span style="color:#a6e22e">amended</span>: <span style="color:#66d9ef">true</span>})  <span style="color:#75715e">// 此时开始有差异，如果是第一次Store这里还充当初始化工作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>[<span style="color:#a6e22e">key</span>] = <span style="color:#a6e22e">newEntry</span>(<span style="color:#a6e22e">value</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// tryStore 存储一个值如果这个entry的p==expunged
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 如果不是，则返回false并且保持这个entry不变
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">e</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">entry</span>) <span style="color:#a6e22e">tryStore</span>(<span style="color:#a6e22e">i</span> <span style="color:#f92672">*</span><span style="color:#66d9ef">interface</span>{}) <span style="color:#66d9ef">bool</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 如果entry.p不是expunged，那么尝试cas更新值，如果有其他groutine也在更新，则等待下一次循环
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">p</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">LoadPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">expunged</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">CompareAndSwapPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">i</span>)) {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// unexpungeLocked确保这个entry身上没有expunged标记
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 如果之前删除了entry，则必须在解锁前将其添加到dirty中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">e</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">entry</span>) <span style="color:#a6e22e">unexpungeLocked</span>() (<span style="color:#a6e22e">wasExpunged</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">CompareAndSwapPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">expunged</span>, <span style="color:#66d9ef">nil</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Map</span>) <span style="color:#a6e22e">dirtyLocked</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {   
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果为nil，则把read中未删除的内容全部拷贝给dirty
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span> = make(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">interface</span>{}]<span style="color:#f92672">*</span><span style="color:#a6e22e">entry</span>, len(<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>))
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">k</span>, <span style="color:#a6e22e">e</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">tryExpungeLocked</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>[<span style="color:#a6e22e">k</span>] = <span style="color:#a6e22e">e</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 目的是为了把read中没删除的部分拷贝给dirty
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">e</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">entry</span>) <span style="color:#a6e22e">tryExpungeLocked</span>() (<span style="color:#a6e22e">isExpunged</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">p</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">LoadPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 如果p==nil,则把他打上expunged标记。全局打删除标记的仅有这一个地方~~~~~~~~
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">CompareAndSwapPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">expunged</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">p</span> = <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">LoadPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 不等于nil，则判断是不是expunged
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">expunged</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><em><strong>Load()</strong></em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// 加载返回存储的对应key的值，如果目前没有值，则返回nil
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 没有找到值时ok是false
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Map</span>) <span style="color:#a6e22e">Load</span>(<span style="color:#a6e22e">key</span> <span style="color:#66d9ef">interface</span>{}) (<span style="color:#a6e22e">value</span> <span style="color:#66d9ef">interface</span>{}, <span style="color:#a6e22e">ok</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">key</span>]
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">amended</span> {  <span style="color:#75715e">// 如果read中找不到则加锁从dirty中尝试，找到则直接返回
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 避免在加锁过程中dirty已经升级成为为新的read从而导致错误
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> = <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">key</span>]
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">amended</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> = <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>[<span style="color:#a6e22e">key</span>]
+</span></span><span style="display:flex;"><span>            <span style="color:#75715e">// 不管这个key是否存在都要记录一个miss，这个key会一直走慢路径知道dirty升级到read
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">missLocked</span>()
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()  
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> {  <span style="color:#75715e">// read和dirty中都找不到
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">load</span>()
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// misses自增，如果misses数量等于dirty的数量了，那么将dirty升级为read；misses置空；dirty置为nil，等待下一次store时创建
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Map</span>) <span style="color:#a6e22e">missLocked</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">misses</span><span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">misses</span> &lt; len(<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Store</span>(<span style="color:#a6e22e">readOnly</span>{<span style="color:#a6e22e">m</span>: <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>})
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span> = <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">misses</span> = <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 将atomic.Pointer取出，判断是否被设了删除标记，如果是则直接返回nil
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">e</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">entry</span>) <span style="color:#a6e22e">load</span>() (<span style="color:#a6e22e">value</span> <span style="color:#66d9ef">interface</span>{}, <span style="color:#a6e22e">ok</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">p</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">LoadPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">expunged</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#f92672">*</span>(<span style="color:#f92672">*</span><span style="color:#66d9ef">interface</span>{})(<span style="color:#a6e22e">p</span>), <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><em><strong>Delete()</strong></em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// 删除指定key对应存储的值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Map</span>) <span style="color:#a6e22e">Delete</span>(<span style="color:#a6e22e">key</span> <span style="color:#66d9ef">interface</span>{}) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">key</span>]   <span style="color:#75715e">// 尝试从read中找
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">amended</span> {  <span style="color:#75715e">// 如果read和dirty有差异且read中找不到
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> = <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">key</span>]
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">amended</span> {
+</span></span><span style="display:flex;"><span>			delete(<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>, <span style="color:#a6e22e">key</span>)  <span style="color:#75715e">// 加锁后从新加载一次read还是找不到则尝试从dirty中删除该key
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ok</span> {   <span style="color:#75715e">// 如果read中有，则将其置为nil，等待Load时打上删除标记
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">e</span>.delete()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// read中的内容不存在真实的删除，只有等dirty升级到read中时才会有真正的删除
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">e</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">entry</span>) delete() (<span style="color:#a6e22e">hadValue</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">p</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">LoadPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">p</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">expunged</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">CompareAndSwapPointer</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">p</span>, <span style="color:#66d9ef">nil</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><em><strong>Range()</strong></em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// Range为当前存储的所有key调用传入进来的func类型参数：f，如果f返回false则停止迭代。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// Range不一定与map存储内容的任何一致快照相对应：不会多次访问任何键，但如果同时存储或删除任何键的值，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 则Range可能会在Range调用期间从任何时间点反映该键的值。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Map</span>) <span style="color:#a6e22e">Range</span>(<span style="color:#a6e22e">f</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">value</span> <span style="color:#66d9ef">interface</span>{}) <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#75715e">// 我们需要能够迭代到所有在Range开始被调用时已经存储的值。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果read和dirty没有差异，那么只遍历read就行了，就不用额外加锁去遍历dirty了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">amended</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// read是dirty的子集（除了值为nil或者已删除的，这些不会到dirty中，但是当他们重新赋值后，dirty中就有了）。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// 因此我们只需要把dirty升级到read，对read遍历一次即可完成目标：
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// 不会对任意一个key进行多次遍历，且遍历完所有的数据。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 加锁后重新加载read，如果还是有差异，则直接升级dirty，升级操作和misses数量等于dirty长度时一样
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">amended</span> {   
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">read</span> = <span style="color:#a6e22e">readOnly</span>{<span style="color:#a6e22e">m</span>: <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Store</span>(<span style="color:#a6e22e">read</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span> = <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">misses</span> = <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">k</span>, <span style="color:#a6e22e">e</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">v</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">load</span>()   <span style="color:#75715e">// 虽然dirty中没有nil或者expunged，但是升级到read解锁后，到执行到这里中间read中可能有nil或者expunged的
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">f</span>(<span style="color:#a6e22e">k</span>, <span style="color:#a6e22e">v</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">break</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><em><strong>LoadOrStore()</strong></em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// LoadOrStore其实就是将Load和Store结合在一起。如果key存在则返回他的值，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 不存在的话则存储value。如果能load到，则loaded是ok，否则是false
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 大多操作之前有说明，就对几个可能有疑问的点做下备注。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Map</span>) <span style="color:#a6e22e">LoadOrStore</span>(<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">value</span> <span style="color:#66d9ef">interface</span>{}) (<span style="color:#a6e22e">actual</span> <span style="color:#66d9ef">interface</span>{}, <span style="color:#a6e22e">loaded</span> <span style="color:#66d9ef">bool</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 如果read中能解决的就不要加锁处理了。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">key</span>]; <span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// read中能读取到则尝试一下看是存储还是获取（可能key对应的值是expunged或者nil，是一个已删除的key，这时还是要存储的）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">actual</span>, <span style="color:#a6e22e">loaded</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">tryLoadOrStore</span>(<span style="color:#a6e22e">value</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">actual</span>, <span style="color:#a6e22e">loaded</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">read</span>, <span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Load</span>().(<span style="color:#a6e22e">readOnly</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>[<span style="color:#a6e22e">key</span>]; <span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">unexpungeLocked</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>[<span style="color:#a6e22e">key</span>] = <span style="color:#a6e22e">e</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">actual</span>, <span style="color:#a6e22e">loaded</span>, <span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">tryLoadOrStore</span>(<span style="color:#a6e22e">value</span>)
+</span></span><span style="display:flex;"><span>	} <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">e</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>[<span style="color:#a6e22e">key</span>]; <span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">actual</span>, <span style="color:#a6e22e">loaded</span>, <span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">tryLoadOrStore</span>(<span style="color:#a6e22e">value</span>)
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// 为什么这里要记录miss而store时不用记录miss。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// miss的本质目的应该是：当慢读次数达到若干次后，就把dirty升级到read，使得未来一段时间如果没有新值写入可以一直快读。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// Store时把记录miss的任务交到Load了（也就是说如果一直Store则永远不会发生dirty升级,read一直是空的），
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// 但是LoadOrStore却是如果有则直接load，没有则先store后load，最终都是取出来并返回了，
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>        <span style="color:#75715e">// 可能之后不会额外调用Load方法了，因此直接记录miss。不记录的话可能就永远慢读了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">missLocked</span>()   
+</span></span><span style="display:flex;"><span>	} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">amended</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// We&#39;re adding the first new key to the dirty map.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#75715e">// Make sure it is allocated and mark the read-only map as incomplete.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirtyLocked</span>()
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">Store</span>(<span style="color:#a6e22e">readOnly</span>{<span style="color:#a6e22e">m</span>: <span style="color:#a6e22e">read</span>.<span style="color:#a6e22e">m</span>, <span style="color:#a6e22e">amended</span>: <span style="color:#66d9ef">true</span>})
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">dirty</span>[<span style="color:#a6e22e">key</span>] = <span style="color:#a6e22e">newEntry</span>(<span style="color:#a6e22e">value</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">actual</span>, <span style="color:#a6e22e">loaded</span> = <span style="color:#a6e22e">value</span>, <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">actual</span>, <span style="color:#a6e22e">loaded</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="总结">总结</h2>
+<ol>
+<li>写新值一定写入dirty，直到load时的miss次数达到指定值才会将dirty升级</li>
+<li>当dirty变空后，再添加新值，会将read中的数据全部复制一份到dirty，且复制的是指针（read中更新数据，dirty中也会自动变化，数据只会存储一份）</li>
+<li>读取时如果read中存在则直接返回，不存在查dirty并将misses自增</li>
+<li>删除dirty中数据会实际删除，但是删除read中内容时不会真正删除，只是置为nil，等生成dirty时，
+会将值为nil的打上已删除标记，并且已删除的部分是不会复制到dirty中</li>
+<li>新的dirty生成后会一直累计misses，直到dirty再一次升级，才会将之前read中删除的内容真正的删除</li>
+</ol>
+<ul class="pa0">
   
    <li class="list di">
      <a href="/tags/%E6%BA%90%E7%A0%81/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">源码</a>
@@ -208,8 +504,8 @@ state()">
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

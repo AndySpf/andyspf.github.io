@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>golang采坑记录之对map加锁 | My New Hugo Site</title>
+    <title>golang采坑记录之对map加锁 | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。
 仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。
@@ -36,11 +36,11 @@
     
 
     
-      <link rel="canonical" href="https://example.org/posts/trap1_map_lock/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/trap1_map_lock/">
     
 
-    <meta property="og:url" content="https://example.org/posts/trap1_map_lock/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/trap1_map_lock/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="golang采坑记录之对map加锁">
   <meta property="og:description" content="最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。
 仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。
@@ -85,7 +85,7 @@
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -236,8 +236,8 @@ map赋值是直接传递引用指针的，即目标map和源map是同一个东�
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

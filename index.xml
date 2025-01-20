@@ -1,137 +1,137 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>My New Hugo Site</title>
-    <link>https://example.org/</link>
-    <description>Recent content on My New Hugo Site</description>
+    <title>日常学习记录总结</title>
+    <link>https://andyspf.github.io/</link>
+    <description>Recent content on 日常学习记录总结</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 18 Apr 2021 00:00:00 +0000</lastBuildDate>
-    <atom:link href="https://example.org/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://andyspf.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>(二)etcd记录-Put&amp;Watch的联系</title>
-      <link>https://example.org/posts/etcd_2/</link>
+      <link>https://andyspf.github.io/posts/etcd_2/</link>
       <pubDate>Sun, 18 Apr 2021 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/etcd_2/</guid>
+      <guid>https://andyspf.github.io/posts/etcd_2/</guid>
       <description>etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。&#xA;这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：&#xA;Put操作 整个put操作的流水线涉及了EtcdServer,raftNode,node,rawNode四个对象之间的通信，其中大量使用了管道通信，先按照我的理解大概画出通信流程帮助记忆，因为整个流程还是比较长的。 接下来跟着源代码走一遍这个流程：&#xA;从grpc server注册处可以看到，put的入口是kvServer的Put方法，该方法中其实就是调用了etcdServer.Put进行业务处理的,&#xA;func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) { ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now()) resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r}) // InternalRaftRequest是可以通过raft发送的所有请求的集合，这里把put的请求放进去，为raft的一致性同步过程做准备。 if err != nil { return nil, err } return resp.(*pb.PutResponse), nil } raftRequest方法展开后可以到达processInternalRaftRequestOnce方法，该方法就是实际处理一次raft操作的地方。&#xA;func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) { ... ch := s.w.Register(id) // 用id注册一个管道，当用相同id调用wait.Trigger方法时，响应结果会从管道中流出。id是生成器(idutil.Generator)生成的请求id cctx, cancel := context.WithTimeout(ctx, s.Cfg.ReqTimeout()) defer cancel() start := time.</description>
     </item>
     <item>
       <title>(一)etcd记录-兼容http方式的grpc</title>
-      <link>https://example.org/posts/etcd_1/</link>
+      <link>https://andyspf.github.io/posts/etcd_1/</link>
       <pubDate>Thu, 18 Mar 2021 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/etcd_1/</guid>
+      <guid>https://andyspf.github.io/posts/etcd_1/</guid>
       <description>etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：&#xA;grpc &amp;amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：&#xA;grpc实现http的Handler 以serverClients函数为例，看下客户端的服务启动过程：&#xA;gs = v3rpc.Server(s, tlscfg, gopts...) v3electionpb.RegisterElectionServer(gs, servElection) v3lockpb.RegisterLockServer(gs, servLock) if sctx.serviceRegister != nil { sctx.serviceRegister(gs) } handler = grpcHandlerFunc(gs, handler) 可以看到这里封装了grpcHandlerFunc将grpc的handler也转换为http.Handler,通过判断http协议版本以及请求头中grpc标志性的Content-Type=application/grpc来决定哪一部分流量走http，哪一部分走grpc。&#xA;func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler { if otherHandler == nil { return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { grpcServer.ServeHTTP(w, r) }) } return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { if r.ProtoMajor == 2 &amp;amp;&amp;amp; strings.Contains(r.Header.Get(&amp;#34;Content-Type&amp;#34;), &amp;#34;application/grpc&amp;#34;) { grpcServer.ServeHTTP(w, r) // grpc.</description>
     </item>
     <item>
       <title>defer引出的go函数调用惯例</title>
-      <link>https://example.org/posts/trap8_defer/</link>
+      <link>https://andyspf.github.io/posts/trap8_defer/</link>
       <pubDate>Sun, 10 Jan 2021 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap8_defer/</guid>
+      <guid>https://andyspf.github.io/posts/trap8_defer/</guid>
       <description>问题 defer执行顺序是个老生常谈的问题，其顺序应该如下：&#xA;return后如果有可计算表达式则先进行计算 检查是否有defer，如果有则从最后一个defer开始执行 顺序执行完所有defer，执行RET 额外需要注意，如果以传参方式传入defer一个变量，则以复制值的方式传入，值为定义defer时变量的值。 但是今天又被下面两种情况搞迷糊了，返回值是否匿名导致了结果完全不同：&#xA;func g1() int { var b int defer func() { b++ }() return b } // 返回0 func g2() (b int) { defer func() { b++ }() return b } // 返回1 猜想 在匿名函数返回值中，需要在函数中重新申请地址存放返回值，整个函数里包括defer都是对这个地址的值进行的处理。但是由于go函数的调用惯例是调用者预留被调用函数的返回值空间，且一般（不考虑逃逸分析的情况）是在栈上预定的位子。因此在return时会把这个值放回预留出来的位置上，然后执行defer的逻辑。因此defer虽然把函数内的临时变量改变了，但是已经放到栈上的内容却没有变，调用者最终拿到的也是提前预留在栈上的地址表示的数。&#xA;有名字的返回值情况下：栈中预留位置就是整个被调用者计算并赋值的位置。包括defer函数中的计算。&#xA;接下来奉献出plan9的第一次，尝试通过看一下汇编来确定猜想：&#xA;匿名返回值情况下： //go:noinline func myFunction() int { var myNum int defer func() { myNum += 7 }() myNum += 3 return myNum } func main() { myFunction() } 执行 go tool compile -N -S -l main.</description>
     </item>
     <item>
       <title>golang1.14.1版本timer调度问题</title>
-      <link>https://example.org/posts/trap7_golang_timer/</link>
+      <link>https://andyspf.github.io/posts/trap7_golang_timer/</link>
       <pubDate>Sat, 28 Nov 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap7_golang_timer/</guid>
+      <guid>https://andyspf.github.io/posts/trap7_golang_timer/</guid>
       <description>最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：&#xA;htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&amp;#34;runtimer: bad p&amp;#34;) } switch s := atomic.Load(&amp;amp;t.status); s { case timerWaiting: if t.when &amp;gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .</description>
     </item>
     <item>
       <title>golang官方包源码阅读记录 sync.Map</title>
-      <link>https://example.org/posts/sync-map/</link>
-      <pubDate>Tue, 10 Nov 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/sync-map/</guid>
-      <description>功能介绍 源码阅读 结构 方法 Add()&#xA;Wait()&#xA;state()</description>
+      <link>https://andyspf.github.io/posts/sync-map/</link>
+      <pubDate>Wed, 18 Nov 2020 00:00:00 +0000</pubDate>
+      <guid>https://andyspf.github.io/posts/sync-map/</guid>
+      <description>功能介绍 sync.Map是一个并发安全的散列表，从结构上来看类似于map[interface{}]interface{}。&#xA;虽然使用这个不需要考虑读写竞争问题，但是不能滥用。大多数情况下还是应该使用普通的map和Mutex组合来进行控制。 其整体思想是分隔，将安全的数据和不安全数据分隔，安全的数据可以避免昂贵的锁操作直接读和更新。当不安全数据过多时， 将其升级为安全数据。这是符合官方建议使用的少写多读场景的。&#xA;源码阅读 结构 // sync.Map是一个类似map[interface{}]interface{}的结构，但是他是并发安全的，多个groutine同时读写不需要 // 额外的添加锁，读取，存储和删除平均时间复杂度为常量级别 // sync.Map更适合用在特定场景，大多数还是应该使用go自带的map。显式的使用锁来保护map内数据。 // sync.Map类型主要适用于以下两个场景： // (1) 对于一个key，只有一次写入，但却有很多次读写（多读少写），类似不断增长的缓存 // (2) 当多个goroutine读写或者覆盖多个不相交的key // 在这两种场景下使用sync.Map会大大减少锁竞争。 // sync.Map的零值是可以使用的，一个Map在第一次使用后不能复制 type Map struct { mu Mutex // read包含散列表内容中可以安全读的一部分，有没有锁都没关系，都可以并发读 // 更新一个已经存在的内容可以不使用锁，但是更新一个已经删除的内容必须把当前entry拷贝到dirty中并且使用锁进行更新。 // read实际存储的是readOnly结构体 read atomic.Value // readOnly // dirty包含Map中需要加锁的那部分数据。为了确保dirty中的内容可以快速的升级到read。他还包含了read中所有没有删除的entry // 删除了的entry不需要再存储在dirty中，一个已删除的entry如果在read中必须要保证其不被真正删除，且在一个新值可以被存储进read前将其添加到dirty // 如果entry是nil，则下一次写操作将会浅拷贝read的内容用来初始化它。 dirty map[interface{}]*entry // misses 统计了从read上一次更新开始执行的loads次数，需要锁来确定key是否存在。 // 一旦misses次数足够，则dirty升级到read(amended=false)，下一次写操作会重新建一个新的dirty misses int } // An entry is a slot in the map corresponding to a particular key.</description>
     </item>
     <item>
       <title>golang官方包源码阅读记录 sync.Cond和sync.Once</title>
-      <link>https://example.org/posts/sync-cond-once/</link>
+      <link>https://andyspf.github.io/posts/sync-cond-once/</link>
       <pubDate>Wed, 04 Nov 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/sync-cond-once/</guid>
+      <guid>https://andyspf.github.io/posts/sync-cond-once/</guid>
       <description>功能介绍 sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。 sync.Once可以保证一段代码只执行一次。 源码阅读 sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。&#xA;使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。 解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。&#xA;sync.Once通过使用一个整形记录使用次数，保证了要保护的资源在整个程序运行期间只会执行一次。当然该结构也不能复制，否则就起不到保护作用了&#xA;sync.Cond结构 type Cond struct { noCopy noCopy // go vet检查 L Locker // 实现了Locker的锁 notify notifyList // sema中关于通知的实现， 下面另说 checker copyChecker // 自己实现的复制检查 } sync.Cond方法 Cond提供了Wait(),Single(),Broadcast()三个方法。功能以及实现逻辑很简单。&#xA;Wait()功能为加锁后判断条件不满足阻塞等待通知&#xA;Single()功能为随机通知一个groutine Broadcast()功能为通知全部groutine 三个方法如下&#xA;type copyChecker uintptr func (c *copyChecker) check() { // 一个实例Cond，第一次调用的时候值是0，将checker的地址作为值赋值给checker，以后每次判断 当前地址是否和自身的值相同。如果有复制，则肯定要新开辟一段地址，那么checker地址肯定变，但是他的值却还是之前的地址，判断时就会不相同。 if uintptr(*c) != uintptr(unsafe.Pointer(c)) &amp;amp;&amp;amp; !atomic.CompareAndSwapUintptr((*uintptr)(c), 0, uintptr(unsafe.Pointer(c))) &amp;amp;&amp;amp; uintptr(*c) != uintptr(unsafe.Pointer(c)) { panic(&amp;#34;sync.Cond is copied&amp;#34;) } } // 用法模板 // c.</description>
     </item>
     <item>
       <title>golang官方包源码阅读记录 sync.RWMutex</title>
-      <link>https://example.org/posts/sync-rwmutex/</link>
+      <link>https://andyspf.github.io/posts/sync-rwmutex/</link>
       <pubDate>Tue, 03 Nov 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/sync-rwmutex/</guid>
+      <guid>https://andyspf.github.io/posts/sync-rwmutex/</guid>
       <description>功能介绍 sync.Mutex是golang官方实现的读写互斥锁。目的是为了在读写分离的场景下提高锁的效率。该锁不限制并发读，但是对于并发读写以及并发写作限制 源码阅读 读写锁复用了Mutex的功能用于对写并发进行阻塞。对于读写分离方面，没有很复杂的逻辑，利用计数器以及groutine唤醒机制进行读写锁分离。&#xA;结构 type RWMutex struct { w Mutex // 如果有写并发参与，则复用Mutex的功能进行阻塞 writerSem uint32 // 写角色信号量 readerSem uint32 // 读角色信号量 readerCount int32 // 当前有多少读并发 readerWait int32 // 开始进行写操作是有多少读操作未完成。需要写操作等待其完成 } 方法 RWMutex提供了Lock(),Unlock(),RLock(),RUnlock()四个方法来实现读写分离锁。&#xA;Lock()&#xA;func (rw *RWMutex) Lock() { if race.Enabled { _ = rw.w.state race.Disable() } // Lock函数是写锁，因此首先使用Mutex的lock功能限制其他写的groutine rw.w.Lock() // 然后判断当前是否还有读操作，将readerCount先变为负数。证明现在有写操作开始进行了 r := atomic.AddInt32(&amp;amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders // 如果r!=0也就是rw.readerCount大于0。那么证明当前的确还有读操作没进行完。 // 同时将readerWait置为当前readerCount的值，以便读锁解锁时可以正确-1 // 然后将进入睡眠等待读锁全部释放后将其唤醒 if r != 0 &amp;amp;&amp;amp; atomic.AddInt32(&amp;amp;rw.readerWait, r) !</description>
     </item>
     <item>
       <title>golang官方包源码阅读记录 sync.WaitGroup</title>
-      <link>https://example.org/posts/sync-waitgroup/</link>
+      <link>https://andyspf.github.io/posts/sync-waitgroup/</link>
       <pubDate>Thu, 08 Oct 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/sync-waitgroup/</guid>
+      <guid>https://andyspf.github.io/posts/sync-waitgroup/</guid>
       <description>功能介绍 sync.WaitGroup是官方给出用于保证并发一致性的工具。他可以阻塞等待多个groutine任务完成后 再继续往下执行。 源码阅读 类似互斥锁那样，WaitGroup内部也运用了位运算以及groutine睡眠唤醒机制。来保证以最小代价正确计数以及成功唤醒阻塞等待的groutine。&#xA;结构 type WaitGroup struct { noCopy noCopy // 64-bit value: high 32 bits are counter, low 32 bits are waiter count. // 64-bit atomic operations require 64-bit alignment, but 32-bit // compilers do not ensure it. So we allocate 12 bytes and then use // the aligned 8 bytes in them as state, and the other 4 as storage // for the sema. // 我们需要使用64位数据表示计数器：即高32位表示当前已添加任务的数量， // 后32位表示使用wait等待的数量。 // 因为这里需要对这个64位数字进行原子操作，32位编译器没法保证对齐。 // 所以干脆申请96位数据表示整个状态 // 其中有整齐的64位用来表示state进行计数，后面32位存储信号量 state1 [3]uint32 } 方法 WaitGroup提供了Wait(),Add(),Done()三个方法，其中Done方法就是调用Add(-1),没有什么特殊的地方</description>
     </item>
     <item>
       <title>golang代码内更改os.Stderr</title>
-      <link>https://example.org/posts/trap6_golang_err_redirect/</link>
+      <link>https://andyspf.github.io/posts/trap6_golang_err_redirect/</link>
       <pubDate>Fri, 18 Sep 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap6_golang_err_redirect/</guid>
+      <guid>https://andyspf.github.io/posts/trap6_golang_err_redirect/</guid>
       <description>问题 尝试把某一个程序的标准错误和标准输出分开，于是分别给os.Stdout和os.Stderr指向了一个文件句柄。 测试发现：标准输出可以正常写入对应文件，但是故意留出的panic制造的标准错误却没写入。 解决 查了一圈发现是什么上层包的变量想赋值到底层runtime包是不行的。挺奇怪的。 不过倒是给出了解决方案 // 通过Dup2的系统调用复制文件描述符 if err = syscall.Dup2(int(file.Fd()), int(os.Stderr.Fd())); err != nil { fmt.Println(err) return err } // 内存回收前关闭文件描述符,该方法将一个对象和一个处理函数相关联，当这个对象处于不可访问时将会执行他的关联函数并解除关联。 下一次gc到达时他不可达且没有关联函数，此时就会删除它。实例：os.NewFile() runtime.SetFinalizer(stdErrFileHandler, func(fd *os.File) { fd.Close() }) 经验证：这样改动后panic日志可以正确写入指定的file</description>
     </item>
     <item>
       <title>nginx踩坑-SELinux强制控制访问</title>
-      <link>https://example.org/posts/trap5_nginx/</link>
+      <link>https://andyspf.github.io/posts/trap5_nginx/</link>
       <pubDate>Tue, 08 Sep 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap5_nginx/</guid>
+      <guid>https://andyspf.github.io/posts/trap5_nginx/</guid>
       <description>问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。&#xA;根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。&#xA;解决 原因是SELinux限制了nginx的转发功能：&#xA;cat /var/log/audit/audit.log | grep nginx | grep denied 查看日志中是否有对nginx的限制，如果有则执行:&#xA;cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx semodule -i mynginx.pp 其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。&#xA;除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:&#xA;setsebool -P httpd_can_network_connect 1 参考链接&#xA;SELinux 介绍 SElinux入门</description>
     </item>
     <item>
       <title>github.com/melbahja/got 号称比wget和curl更快的下载工具</title>
-      <link>https://example.org/posts/github-got/</link>
+      <link>https://andyspf.github.io/posts/github-got/</link>
       <pubDate>Mon, 10 Aug 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/github-got/</guid>
+      <guid>https://andyspf.github.io/posts/github-got/</guid>
       <description>刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：&#xA;设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 </description>
     </item>
     <item>
       <title>slice踩坑-slice并发时是否需要加锁</title>
-      <link>https://example.org/posts/trap4_slice_2/</link>
+      <link>https://andyspf.github.io/posts/trap4_slice_2/</link>
       <pubDate>Thu, 06 Aug 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap4_slice_2/</guid>
+      <guid>https://andyspf.github.io/posts/trap4_slice_2/</guid>
       <description>问题 线上程序panic，被检测脚本重新拉起后收到告警。&#xA;查看panic日志，发现是在slice执行append操作时panic了。&#xA;一开始还感觉很奇怪，往源码里查了查。突然想起来这份代码之前已经出过没加锁panic的事故。&#xA;按这个思路的确又找到了问题： 一个全局切片变量没加锁。两个groutine写入，一个做切片追加操作，一个对当前切片内的内容json序列化后，重新申请内存，赋值长度为0的新切片。 很小的概率下会导致切片在追加新元素时内存地址错误从而panic。&#xA;复现代码如下：&#xA;var All []int func g1() { for i := 0; i &amp;lt; 100000; i++ { All = append(All, i) } } func g3() { for i := 0; i &amp;lt; 100000; i++ { bs, err := json.Marshal(All) if err != nil { fmt.Println(err.Error()) } fmt.Println(string(bs)) All = make([]int, 0) } } func main() { go g1() go g3() select {} } 报错：unexpected fault address 0x5a7000</description>
     </item>
     <item>
       <title>slice踩坑-slice是如何传引用的</title>
-      <link>https://example.org/posts/trap3_slice_1/</link>
+      <link>https://andyspf.github.io/posts/trap3_slice_1/</link>
       <pubDate>Wed, 22 Jul 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap3_slice_1/</guid>
+      <guid>https://andyspf.github.io/posts/trap3_slice_1/</guid>
       <description>因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。 模拟出问题的业务代码如下：&#xA;type t struct { ss []int id int } func main(){ oldSlice := make([]int, 5, 8) for i := 0; i &amp;lt; 5; i++ { oldSlice[i] = i } ts := []t{ {id: 0}, {id: 1}, {id: 2}, } for i := range ts { ts[i].ss = oldSlice } for i := range ts { if i%2 == 0 { ts[i].ss = append(ts[i].ss, i) } } fmt.Println(ts[0].ss) fmt.Println(ts[1].ss) fmt.</description>
     </item>
     <item>
       <title>根据ip获取其对应isp的实现测试</title>
-      <link>https://example.org/posts/ip-isp/</link>
+      <link>https://andyspf.github.io/posts/ip-isp/</link>
       <pubDate>Mon, 20 Jul 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/ip-isp/</guid>
+      <guid>https://andyspf.github.io/posts/ip-isp/</guid>
       <description>公司买了离线版ip段对应的isp以及城市信息文本，让搞一个在线接口返回一个ip对应的信息。个人能想到的三个方案如下：&#xA;1.二叉树 一个合格的ip地址可以转换为uint32类型。那么将这个无符号数用二进制表示，从高位到低位其实可以构建出一个二叉树，0为左子树，1为右子树。&#xA;树的高度理论上最大等于32，实际上查找的时候等于这个ip所在ip段的mask值。因为构建树的时候只要构建到mask值的高度就可以了，查询时只要判断左右子树都是nil那么就是找到了。&#xA;2.mysql 既然可以转换为uint32，那么直接根据mask值算出这个ip段最大ip对应的uint32和最小ip对应的uint32，然后加入mysql，做一个查询即可。 不耗费内存，只是查询速度太慢一般需要几百毫秒，因为需要用到&amp;gt;和&amp;lt;貌似不会用到索引。&#xA;3.二分法查找 将算出来的起始uint32构建成数组使用二分查找，最坏情况下时间复杂度log(n)，且占用内存比第一种方法少了一半。&#xA;代码可参考</description>
     </item>
     <item>
       <title>golang官方包源码阅读记录 sync.Mutex</title>
-      <link>https://example.org/posts/sync-mutex/</link>
+      <link>https://andyspf.github.io/posts/sync-mutex/</link>
       <pubDate>Wed, 15 Jul 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/sync-mutex/</guid>
+      <guid>https://andyspf.github.io/posts/sync-mutex/</guid>
       <description>功能介绍 sync.Mutex是golang官方实现的互斥锁。这是一个公平锁，尽最大可能保证所有groutine有同等概率得到锁,不会出现某个groutine一直拿不到锁的情况。 这个是如何保证的呢？mutex分为两种状态，正常态和饥饿态。饥饿状态就是为了解决某些groutine在排队队列中一直竞争不到锁而设计出来的，一旦mutex变为饥饿态。释放锁的时候就会直接交给队列的第一个而不会让大家去竞争。从而保证了不会有尾部延时情况出现。 源码阅读 互斥锁中依然有大量的位运算以及很巧妙的设计,对着代码做一下注释：&#xA;结构 // mutex是一个互斥的锁 // mutex的0值是没有上锁的状态，即mutex只要定义了，不比初始化就是就可用的。 // 一个mutex从第一次开始使用就不能被赋值，所以用函数传递mutex是不推荐的，必须要这样操作的话也只能传递指针。 type Mutex struct { state int32 sema uint32 } 可以看到Mutex下只有两个32位字段state和sema，也就是说8个字节就能表示一个互斥锁。&#xA;其中state是表示整个锁的状态，这个属性可以被多个groutine访问，通过atmoic的原子操作避免竞争问题。&#xA;需要注意的是这个int32中从低到高前三个bit为都是状态为。第一位表示是否锁定，第二位表示是否是唤醒状态，第三位表示是否是饥饿状态，再往高的位表示的是当前正在等待排队期望获取锁的groutine数量。&#xA;sema则是信号量，其机制为：acquire时如果sema大于0，那么减一返回，否则休眠等待。release将sema加一，然后唤醒等待队列的一个goroutine。&#xA;方法 Mutex互斥锁提供了Lock()和Unlock()方法。&#xA;Lock()&#xA;// Lock 锁定m. // 如果lock已经被使用了，则调用方会被阻塞直到mutex可用 func (m *Mutex) Lock() { // 类似上一篇的sync.Pool有慢获取一样，这里也分为快加锁和慢加锁 // 加锁的实质其实就是取得能修改m.state的权利 // 快速路： cas操作可以将m.state由0变为1 if atomic.CompareAndSwapInt32(&amp;amp;m.state, 0, mutexLocked) { if race.Enabled { race.Acquire(unsafe.Pointer(m)) } return } // 如果无法获取锁，那么就走慢路径。这里单独抽出来作为一个独立函数是为了让快速路可以内联提升点性能。 m.lockSlow() } func (m *Mutex) lockSlow() { var waitStartTime int64 // 等待锁的时间，判断变身为饥饿锁的依据 starving := false // 当前groutine内表示是否是饥饿态，注意区分state中的饥饿态标识位 awoke := false // 当前groutine内表示是否是唤醒态，注意区分state中的唤醒态标识位 iter := 0 // 次数，自旋用到的，超过4次就不允许自旋了 old := m.</description>
     </item>
     <item>
       <title>ssh添加公钥后无法免秘钥访问</title>
-      <link>https://example.org/posts/trap2_ssh/</link>
+      <link>https://andyspf.github.io/posts/trap2_ssh/</link>
       <pubDate>Tue, 30 Jun 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap2_ssh/</guid>
+      <guid>https://andyspf.github.io/posts/trap2_ssh/</guid>
       <description>服务器A的公钥放入服务器B的authorized_keys中后，从服务器A直接ssh登录服务器B，发现仍然需要输入密码。&#xA;&amp;gt; man sshd_config StrictModes Specifies whether sshd(8) should check file modes and ownership of the user’s files and home directory before accepting login. This is normally desirable because novices sometimes accidentally leave their directory or files world-writable. The default is “yes”. 查阅手册后发现： 严格模式下，ssh或者dropbear都会检测authorized_keys的权限，权限过大会认为该文件不可靠。一般将authorized_keys权限置为600。&#xA;或者直接关掉StrictModes</description>
     </item>
     <item>
       <title>golang采坑记录之对map加锁</title>
-      <link>https://example.org/posts/trap1_map_lock/</link>
+      <link>https://andyspf.github.io/posts/trap1_map_lock/</link>
       <pubDate>Thu, 18 Jun 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap1_map_lock/</guid>
+      <guid>https://andyspf.github.io/posts/trap1_map_lock/</guid>
       <description>最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。&#xA;仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。&#xA;复现代码如下：&#xA;// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &amp;lt; 10000; i++ { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.</description>
     </item>
     <item>
       <title>golang官方包源码阅读记录 sync.Pool</title>
-      <link>https://example.org/posts/sync-pool/</link>
+      <link>https://andyspf.github.io/posts/sync-pool/</link>
       <pubDate>Fri, 05 Jun 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/sync-pool/</guid>
+      <guid>https://andyspf.github.io/posts/sync-pool/</guid>
       <description>功能介绍 golang的sync包是用于进行并发控制，其中sync.Pool是比较常用到的一个结构。其目的很简单：缓存已分配但暂时未使用的对象以便以后可以复用，避免大量创建临时对象，减轻GC压力。需要注意的是不要认为存入的对象和取出的对象之间有任何关系，池中的数据会在GC时被清空。如果pool中为空，则会返回自定义的New函数返回的对象。下面是摘抄的一小段官方注释：&#xA;A Pool is a set of temporary objects that may be individually saved and retrieved. Any item stored in the Pool may be removed automatically at any time without notification. If the Pool holds the only reference when this happens, the item might be deallocated. 使用示例可参考json包的Marshal函数。&#xA;func Marshal(v interface{}) ([]byte, error) { e := newEncodeState() // 从池中去除一个对象 ...... encodeStatePool.Put(e) // 将从池中取出来的对象重新放入池中 return buf, nil } func newEncodeState() *encodeState { if v := encodeStatePool.</description>
     </item>
   </channel>

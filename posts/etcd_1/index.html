@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>(一)etcd记录-兼容http方式的grpc | My New Hugo Site</title>
+    <title>(一)etcd记录-兼容http方式的grpc | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：
 grpc &amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：
@@ -37,11 +37,11 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
     
 
     
-      <link rel="canonical" href="https://example.org/posts/etcd_1/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/etcd_1/">
     
 
-    <meta property="og:url" content="https://example.org/posts/etcd_1/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/etcd_1/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="(一)etcd记录-兼容http方式的grpc">
   <meta property="og:description" content="etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：
 grpc &amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：
@@ -89,7 +89,7 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -358,8 +358,8 @@ http.Server或者grpc.Server就可以用匹配了对应流量的listener启动�
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

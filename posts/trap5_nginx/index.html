@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>nginx踩坑-SELinux强制控制访问 | My New Hugo Site</title>
+    <title>nginx踩坑-SELinux强制控制访问 | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。
 根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。
@@ -40,11 +40,11 @@ SELinux 介绍 SElinux入门">
     
 
     
-      <link rel="canonical" href="https://example.org/posts/trap5_nginx/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/trap5_nginx/">
     
 
-    <meta property="og:url" content="https://example.org/posts/trap5_nginx/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/trap5_nginx/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="nginx踩坑-SELinux强制控制访问">
   <meta property="og:description" content="问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。
 根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。
@@ -101,7 +101,7 @@ SELinux 介绍 SElinux入门">
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -228,8 +228,8 @@ semodule -i mynginx.pp
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

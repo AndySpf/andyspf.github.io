@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>My New Hugo Site</title>
+    <title>日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="">
     <meta name="generator" content="Hugo 0.133.0">
@@ -30,17 +30,17 @@
 
     
     
-      <link href="/tags/%E6%BA%90%E7%A0%81/index.xml" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
-      <link href="/tags/%E6%BA%90%E7%A0%81/index.xml" rel="feed" type="application/rss+xml" title="My New Hugo Site" />
+      <link href="/tags/%E6%BA%90%E7%A0%81/index.xml" rel="alternate" type="application/rss+xml" title="日常学习记录总结" />
+      <link href="/tags/%E6%BA%90%E7%A0%81/index.xml" rel="feed" type="application/rss+xml" title="日常学习记录总结" />
       
     
 
     
-      <link rel="canonical" href="https://example.org/tags/%E6%BA%90%E7%A0%81/">
+      <link rel="canonical" href="https://andyspf.github.io/tags/%E6%BA%90%E7%A0%81/">
     
 
-    <meta property="og:url" content="https://example.org/tags/%E6%BA%90%E7%A0%81/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/tags/%E6%BA%90%E7%A0%81/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="源码">
   <meta property="og:locale" content="en_us">
   <meta property="og:type" content="website">
@@ -64,7 +64,7 @@
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -155,9 +155,9 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
       </a>
     </h1>
     <div class="nested-links f5 lh-copy nested-copy-line-height">
-      功能介绍 源码阅读 结构 方法 Add()
-Wait()
-state()
+      功能介绍 sync.Map是一个并发安全的散列表，从结构上来看类似于map[interface{}]interface{}。
+虽然使用这个不需要考虑读写竞争问题，但是不能滥用。大多数情况下还是应该使用普通的map和Mutex组合来进行控制。 其整体思想是分隔，将安全的数据和不安全数据分隔，安全的数据可以避免昂贵的锁操作直接读和更新。当不安全数据过多时， 将其升级为安全数据。这是符合官方建议使用的少写多读场景的。
+源码阅读 结构 // sync.Map是一个类似map[interface{}]interface{}的结构，但是他是并发安全的，多个groutine同时读写不需要 // 额外的添加锁，读取，存储和删除平均时间复杂度为常量级别 // sync.Map更适合用在特定场景，大多数还是应该使用go自带的map。显式的使用锁来保护map内数据。 // sync.Map类型主要适用于以下两个场景： // (1) 对于一个key，只有一次写入，但却有很多次读写（多读少写），类似不断增长的缓存 // (2) 当多个goroutine读写或者覆盖多个不相交的key // 在这两种场景下使用sync.Map会大大减少锁竞争。 // sync.Map的零值是可以使用的，一个Map在第一次使用后不能复制 type Map struct { mu Mutex // read包含散列表内容中可以安全读的一部分，有没有锁都没关系，都可以并发读 // 更新一个已经存在的内容可以不使用锁，但是更新一个已经删除的内容必须把当前entry拷贝到dirty中并且使用锁进行更新。 // read实际存储的是readOnly结构体 read atomic.Value // readOnly // dirty包含Map中需要加锁的那部分数据。为了确保dirty中的内容可以快速的升级到read。他还包含了read中所有没有删除的entry // 删除了的entry不需要再存储在dirty中，一个已删除的entry如果在read中必须要保证其不被真正删除，且在一个新值可以被存储进read前将其添加到dirty // 如果entry是nil，则下一次写操作将会浅拷贝read的内容用来初始化它。 dirty map[interface{}]*entry // misses 统计了从read上一次更新开始执行的loads次数，需要锁来确定key是否存在。 // 一旦misses次数足够，则dirty升级到read(amended=false)，下一次写操作会重新建一个新的dirty misses int } // An entry is a slot in the map corresponding to a particular key.
     </div>
     <a href="/posts/sync-map/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
   </div>
@@ -299,8 +299,8 @@ func Marshal(v interface{}) ([]byte, error) { e := newEncodeState() // 从池中
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

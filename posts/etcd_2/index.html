@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>(二)etcd记录-Put&amp;Watch的联系 | My New Hugo Site</title>
+    <title>(二)etcd记录-Put&amp;Watch的联系 | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。
 这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：
@@ -38,11 +38,11 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
     
 
     
-      <link rel="canonical" href="https://example.org/posts/etcd_2/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/etcd_2/">
     
 
-    <meta property="og:url" content="https://example.org/posts/etcd_2/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/etcd_2/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="(二)etcd记录-Put&Watch的联系">
   <meta property="og:description" content="etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。
 这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：
@@ -93,7 +93,7 @@ func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.In
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -945,8 +945,8 @@ put操作本身代码逻辑就已经相当复杂了，各种chan通信用的十�
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

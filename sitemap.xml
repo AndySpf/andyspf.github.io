@@ -2,124 +2,124 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://example.org/posts/etcd_2/</loc>
+    <loc>https://andyspf.github.io/posts/etcd_2/</loc>
     <lastmod>2021-04-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/categories/</loc>
+    <loc>https://andyspf.github.io/categories/</loc>
     <lastmod>2021-04-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/etcd/</loc>
+    <loc>https://andyspf.github.io/tags/etcd/</loc>
     <lastmod>2021-04-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/categories/golang/</loc>
+    <loc>https://andyspf.github.io/categories/golang/</loc>
     <lastmod>2021-04-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/</loc>
+    <loc>https://andyspf.github.io/posts/</loc>
     <lastmod>2021-04-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/</loc>
+    <loc>https://andyspf.github.io/tags/</loc>
     <lastmod>2021-04-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/</loc>
+    <loc>https://andyspf.github.io/</loc>
     <lastmod>2021-04-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/%E6%BA%90%E7%A0%81/</loc>
+    <loc>https://andyspf.github.io/tags/%E6%BA%90%E7%A0%81/</loc>
     <lastmod>2021-04-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/etcd_1/</loc>
+    <loc>https://andyspf.github.io/posts/etcd_1/</loc>
     <lastmod>2021-03-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/trap8_defer/</loc>
+    <loc>https://andyspf.github.io/posts/trap8_defer/</loc>
     <lastmod>2021-01-10T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/golang/</loc>
+    <loc>https://andyspf.github.io/tags/golang/</loc>
     <lastmod>2021-01-10T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/%E8%B8%A9%E5%9D%91/</loc>
+    <loc>https://andyspf.github.io/tags/%E8%B8%A9%E5%9D%91/</loc>
     <lastmod>2021-01-10T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/trap7_golang_timer/</loc>
+    <loc>https://andyspf.github.io/posts/trap7_golang_timer/</loc>
     <lastmod>2020-11-28T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/timer/</loc>
+    <loc>https://andyspf.github.io/tags/timer/</loc>
     <lastmod>2020-11-28T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/sync-map/</loc>
-    <lastmod>2020-11-10T00:00:00+00:00</lastmod>
+    <loc>https://andyspf.github.io/posts/sync-map/</loc>
+    <lastmod>2020-11-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/sync/</loc>
-    <lastmod>2020-11-10T00:00:00+00:00</lastmod>
+    <loc>https://andyspf.github.io/tags/sync/</loc>
+    <lastmod>2020-11-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/sync-cond-once/</loc>
+    <loc>https://andyspf.github.io/posts/sync-cond-once/</loc>
     <lastmod>2020-11-04T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/sync-rwmutex/</loc>
+    <loc>https://andyspf.github.io/posts/sync-rwmutex/</loc>
     <lastmod>2020-11-03T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/sync-waitgroup/</loc>
+    <loc>https://andyspf.github.io/posts/sync-waitgroup/</loc>
     <lastmod>2020-10-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/trap6_golang_err_redirect/</loc>
+    <loc>https://andyspf.github.io/posts/trap6_golang_err_redirect/</loc>
     <lastmod>2020-09-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/nginx/</loc>
+    <loc>https://andyspf.github.io/tags/nginx/</loc>
     <lastmod>2020-09-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/categories/nginx/</loc>
+    <loc>https://andyspf.github.io/categories/nginx/</loc>
     <lastmod>2020-09-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/trap5_nginx/</loc>
+    <loc>https://andyspf.github.io/posts/trap5_nginx/</loc>
     <lastmod>2020-09-08T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/github-got/</loc>
+    <loc>https://andyspf.github.io/posts/github-got/</loc>
     <lastmod>2020-08-10T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/%E4%B8%8B%E8%BD%BD%E5%99%A8/</loc>
+    <loc>https://andyspf.github.io/tags/%E4%B8%8B%E8%BD%BD%E5%99%A8/</loc>
     <lastmod>2020-08-10T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/categories/%E6%BA%90%E7%A0%81/</loc>
+    <loc>https://andyspf.github.io/categories/%E6%BA%90%E7%A0%81/</loc>
     <lastmod>2020-08-10T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/slice/</loc>
+    <loc>https://andyspf.github.io/tags/slice/</loc>
     <lastmod>2020-08-06T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/trap4_slice_2/</loc>
+    <loc>https://andyspf.github.io/posts/trap4_slice_2/</loc>
     <lastmod>2020-08-06T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/trap3_slice_1/</loc>
+    <loc>https://andyspf.github.io/posts/trap3_slice_1/</loc>
     <lastmod>2020-07-22T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/tree/</loc>
+    <loc>https://andyspf.github.io/tags/tree/</loc>
     <lastmod>2020-07-20T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/%E4%BA%8C%E5%88%86%E6%B3%95/</loc>
+    <loc>https://andyspf.github.io/tags/%E4%BA%8C%E5%88%86%E6%B3%95/</loc>
     <lastmod>2020-07-20T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/categories/%E6%9F%A5%E8%AF%A2%E7%AE%97%E6%B3%95/</loc>
+    <loc>https://andyspf.github.io/categories/%E6%9F%A5%E8%AF%A2%E7%AE%97%E6%B3%95/</loc>
     <lastmod>2020-07-20T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/ip-isp/</loc>
+    <loc>https://andyspf.github.io/posts/ip-isp/</loc>
     <lastmod>2020-07-20T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/sync-mutex/</loc>
+    <loc>https://andyspf.github.io/posts/sync-mutex/</loc>
     <lastmod>2020-07-15T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/ssh/</loc>
+    <loc>https://andyspf.github.io/tags/ssh/</loc>
     <lastmod>2020-06-30T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/categories/ssh/</loc>
+    <loc>https://andyspf.github.io/categories/ssh/</loc>
     <lastmod>2020-06-30T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/trap2_ssh/</loc>
+    <loc>https://andyspf.github.io/posts/trap2_ssh/</loc>
     <lastmod>2020-06-30T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/trap1_map_lock/</loc>
+    <loc>https://andyspf.github.io/posts/trap1_map_lock/</loc>
     <lastmod>2020-06-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/mutex/</loc>
+    <loc>https://andyspf.github.io/tags/mutex/</loc>
     <lastmod>2020-06-18T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/posts/sync-pool/</loc>
+    <loc>https://andyspf.github.io/posts/sync-pool/</loc>
     <lastmod>2020-06-05T00:00:00+00:00</lastmod>
   </url>
 </urlset>

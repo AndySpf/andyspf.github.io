@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Slice on My New Hugo Site</title>
-    <link>https://example.org/tags/slice/</link>
-    <description>Recent content in Slice on My New Hugo Site</description>
+    <title>Slice on 日常学习记录总结</title>
+    <link>https://andyspf.github.io/tags/slice/</link>
+    <description>Recent content in Slice on 日常学习记录总结</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Thu, 06 Aug 2020 00:00:00 +0000</lastBuildDate>
-    <atom:link href="https://example.org/tags/slice/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://andyspf.github.io/tags/slice/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>slice踩坑-slice并发时是否需要加锁</title>
-      <link>https://example.org/posts/trap4_slice_2/</link>
+      <link>https://andyspf.github.io/posts/trap4_slice_2/</link>
       <pubDate>Thu, 06 Aug 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap4_slice_2/</guid>
+      <guid>https://andyspf.github.io/posts/trap4_slice_2/</guid>
       <description>问题 线上程序panic，被检测脚本重新拉起后收到告警。&#xA;查看panic日志，发现是在slice执行append操作时panic了。&#xA;一开始还感觉很奇怪，往源码里查了查。突然想起来这份代码之前已经出过没加锁panic的事故。&#xA;按这个思路的确又找到了问题： 一个全局切片变量没加锁。两个groutine写入，一个做切片追加操作，一个对当前切片内的内容json序列化后，重新申请内存，赋值长度为0的新切片。 很小的概率下会导致切片在追加新元素时内存地址错误从而panic。&#xA;复现代码如下：&#xA;var All []int func g1() { for i := 0; i &amp;lt; 100000; i++ { All = append(All, i) } } func g3() { for i := 0; i &amp;lt; 100000; i++ { bs, err := json.Marshal(All) if err != nil { fmt.Println(err.Error()) } fmt.Println(string(bs)) All = make([]int, 0) } } func main() { go g1() go g3() select {} } 报错：unexpected fault address 0x5a7000</description>
     </item>
     <item>
       <title>slice踩坑-slice是如何传引用的</title>
-      <link>https://example.org/posts/trap3_slice_1/</link>
+      <link>https://andyspf.github.io/posts/trap3_slice_1/</link>
       <pubDate>Wed, 22 Jul 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap3_slice_1/</guid>
+      <guid>https://andyspf.github.io/posts/trap3_slice_1/</guid>
       <description>因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。 模拟出问题的业务代码如下：&#xA;type t struct { ss []int id int } func main(){ oldSlice := make([]int, 5, 8) for i := 0; i &amp;lt; 5; i++ { oldSlice[i] = i } ts := []t{ {id: 0}, {id: 1}, {id: 2}, } for i := range ts { ts[i].ss = oldSlice } for i := range ts { if i%2 == 0 { ts[i].ss = append(ts[i].ss, i) } } fmt.Println(ts[0].ss) fmt.Println(ts[1].ss) fmt.</description>
     </item>
   </channel>

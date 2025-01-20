@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>golang1.14.1版本timer调度问题 | My New Hugo Site</title>
+    <title>golang1.14.1版本timer调度问题 | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：
 htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&#34;runtimer: bad p&#34;) } switch s := atomic.Load(&amp;t.status); s { case timerWaiting: if t.when &gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .">
@@ -34,11 +34,11 @@ htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该�
     
 
     
-      <link rel="canonical" href="https://example.org/posts/trap7_golang_timer/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/trap7_golang_timer/">
     
 
-    <meta property="og:url" content="https://example.org/posts/trap7_golang_timer/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/trap7_golang_timer/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="golang1.14.1版本timer调度问题">
   <meta property="og:description" content="最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：
 htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&#34;runtimer: bad p&#34;) } switch s := atomic.Load(&amp;t.status); s { case timerWaiting: if t.when &gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .">
@@ -77,7 +77,7 @@ htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该�
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -263,8 +263,8 @@ htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该�
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>ssh添加公钥后无法免秘钥访问 | My New Hugo Site</title>
+    <title>ssh添加公钥后无法免秘钥访问 | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="服务器A的公钥放入服务器B的authorized_keys中后，从服务器A直接ssh登录服务器B，发现仍然需要输入密码。
 &gt; man sshd_config StrictModes Specifies whether sshd(8) should check file modes and ownership of the user’s files and home directory before accepting login. This is normally desirable because novices sometimes accidentally leave their directory or files world-writable. The default is “yes”. 查阅手册后发现： 严格模式下，ssh或者dropbear都会检测authorized_keys的权限，权限过大会认为该文件不可靠。一般将authorized_keys权限置为600。
@@ -35,11 +35,11 @@
     
 
     
-      <link rel="canonical" href="https://example.org/posts/trap2_ssh/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/trap2_ssh/">
     
 
-    <meta property="og:url" content="https://example.org/posts/trap2_ssh/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/trap2_ssh/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="ssh添加公钥后无法免秘钥访问">
   <meta property="og:description" content="服务器A的公钥放入服务器B的authorized_keys中后，从服务器A直接ssh登录服务器B，发现仍然需要输入密码。
 &gt; man sshd_config StrictModes Specifies whether sshd(8) should check file modes and ownership of the user’s files and home directory before accepting login. This is normally desirable because novices sometimes accidentally leave their directory or files world-writable. The default is “yes”. 查阅手册后发现： 严格模式下，ssh或者dropbear都会检测authorized_keys的权限，权限过大会认为该文件不可靠。一般将authorized_keys权限置为600。
@@ -81,7 +81,7 @@
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -191,8 +191,8 @@ StrictModes
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

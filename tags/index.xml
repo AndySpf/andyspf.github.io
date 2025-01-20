@@ -1,102 +1,102 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Tags on My New Hugo Site</title>
-    <link>https://example.org/tags/</link>
-    <description>Recent content in Tags on My New Hugo Site</description>
+    <title>Tags on 日常学习记录总结</title>
+    <link>https://andyspf.github.io/tags/</link>
+    <description>Recent content in Tags on 日常学习记录总结</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 18 Apr 2021 00:00:00 +0000</lastBuildDate>
-    <atom:link href="https://example.org/tags/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://andyspf.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Etcd</title>
-      <link>https://example.org/tags/etcd/</link>
+      <link>https://andyspf.github.io/tags/etcd/</link>
       <pubDate>Sun, 18 Apr 2021 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/etcd/</guid>
+      <guid>https://andyspf.github.io/tags/etcd/</guid>
       <description></description>
     </item>
     <item>
       <title>源码</title>
-      <link>https://example.org/tags/%E6%BA%90%E7%A0%81/</link>
+      <link>https://andyspf.github.io/tags/%E6%BA%90%E7%A0%81/</link>
       <pubDate>Sun, 18 Apr 2021 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/%E6%BA%90%E7%A0%81/</guid>
+      <guid>https://andyspf.github.io/tags/%E6%BA%90%E7%A0%81/</guid>
       <description></description>
     </item>
     <item>
       <title>Golang</title>
-      <link>https://example.org/tags/golang/</link>
+      <link>https://andyspf.github.io/tags/golang/</link>
       <pubDate>Sun, 10 Jan 2021 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/golang/</guid>
+      <guid>https://andyspf.github.io/tags/golang/</guid>
       <description></description>
     </item>
     <item>
       <title>踩坑</title>
-      <link>https://example.org/tags/%E8%B8%A9%E5%9D%91/</link>
+      <link>https://andyspf.github.io/tags/%E8%B8%A9%E5%9D%91/</link>
       <pubDate>Sun, 10 Jan 2021 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/%E8%B8%A9%E5%9D%91/</guid>
+      <guid>https://andyspf.github.io/tags/%E8%B8%A9%E5%9D%91/</guid>
       <description></description>
     </item>
     <item>
       <title>Timer</title>
-      <link>https://example.org/tags/timer/</link>
+      <link>https://andyspf.github.io/tags/timer/</link>
       <pubDate>Sat, 28 Nov 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/timer/</guid>
+      <guid>https://andyspf.github.io/tags/timer/</guid>
       <description></description>
     </item>
     <item>
       <title>Sync</title>
-      <link>https://example.org/tags/sync/</link>
-      <pubDate>Tue, 10 Nov 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/sync/</guid>
+      <link>https://andyspf.github.io/tags/sync/</link>
+      <pubDate>Wed, 18 Nov 2020 00:00:00 +0000</pubDate>
+      <guid>https://andyspf.github.io/tags/sync/</guid>
       <description></description>
     </item>
     <item>
       <title>Nginx</title>
-      <link>https://example.org/tags/nginx/</link>
+      <link>https://andyspf.github.io/tags/nginx/</link>
       <pubDate>Tue, 08 Sep 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/nginx/</guid>
+      <guid>https://andyspf.github.io/tags/nginx/</guid>
       <description></description>
     </item>
     <item>
       <title>下载器</title>
-      <link>https://example.org/tags/%E4%B8%8B%E8%BD%BD%E5%99%A8/</link>
+      <link>https://andyspf.github.io/tags/%E4%B8%8B%E8%BD%BD%E5%99%A8/</link>
       <pubDate>Mon, 10 Aug 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/%E4%B8%8B%E8%BD%BD%E5%99%A8/</guid>
+      <guid>https://andyspf.github.io/tags/%E4%B8%8B%E8%BD%BD%E5%99%A8/</guid>
       <description></description>
     </item>
     <item>
       <title>Slice</title>
-      <link>https://example.org/tags/slice/</link>
+      <link>https://andyspf.github.io/tags/slice/</link>
       <pubDate>Thu, 06 Aug 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/slice/</guid>
+      <guid>https://andyspf.github.io/tags/slice/</guid>
       <description></description>
     </item>
     <item>
       <title>Tree</title>
-      <link>https://example.org/tags/tree/</link>
+      <link>https://andyspf.github.io/tags/tree/</link>
       <pubDate>Mon, 20 Jul 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/tree/</guid>
+      <guid>https://andyspf.github.io/tags/tree/</guid>
       <description></description>
     </item>
     <item>
       <title>二分法</title>
-      <link>https://example.org/tags/%E4%BA%8C%E5%88%86%E6%B3%95/</link>
+      <link>https://andyspf.github.io/tags/%E4%BA%8C%E5%88%86%E6%B3%95/</link>
       <pubDate>Mon, 20 Jul 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/%E4%BA%8C%E5%88%86%E6%B3%95/</guid>
+      <guid>https://andyspf.github.io/tags/%E4%BA%8C%E5%88%86%E6%B3%95/</guid>
       <description></description>
     </item>
     <item>
       <title>Ssh</title>
-      <link>https://example.org/tags/ssh/</link>
+      <link>https://andyspf.github.io/tags/ssh/</link>
       <pubDate>Tue, 30 Jun 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/ssh/</guid>
+      <guid>https://andyspf.github.io/tags/ssh/</guid>
       <description></description>
     </item>
     <item>
       <title>Mutex</title>
-      <link>https://example.org/tags/mutex/</link>
+      <link>https://andyspf.github.io/tags/mutex/</link>
       <pubDate>Thu, 18 Jun 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/tags/mutex/</guid>
+      <guid>https://andyspf.github.io/tags/mutex/</guid>
       <description></description>
     </item>
   </channel>

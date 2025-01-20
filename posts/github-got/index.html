@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>github.com/melbahja/got 号称比wget和curl更快的下载工具 | My New Hugo Site</title>
+    <title>github.com/melbahja/got 号称比wget和curl更快的下载工具 | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：
 设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 ">
@@ -34,11 +34,11 @@
     
 
     
-      <link rel="canonical" href="https://example.org/posts/github-got/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/github-got/">
     
 
-    <meta property="og:url" content="https://example.org/posts/github-got/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/github-got/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="github.com/melbahja/got 号称比wget和curl更快的下载工具">
   <meta property="og:description" content="刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：
 设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 ">
@@ -77,7 +77,7 @@
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -188,8 +188,8 @@
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

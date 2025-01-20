@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
-    <title>golang官方包源码阅读记录 sync.Pool | My New Hugo Site</title>
+    <title>golang官方包源码阅读记录 sync.Pool | 日常学习记录总结</title>
     <meta name="viewport" content="width=device-width,minimum-scale=1">
     <meta name="description" content="功能介绍 golang的sync包是用于进行并发控制，其中sync.Pool是比较常用到的一个结构。其目的很简单：缓存已分配但暂时未使用的对象以便以后可以复用，避免大量创建临时对象，减轻GC压力。需要注意的是不要认为存入的对象和取出的对象之间有任何关系，池中的数据会在GC时被清空。如果pool中为空，则会返回自定义的New函数返回的对象。下面是摘抄的一小段官方注释：
 A Pool is a set of temporary objects that may be individually saved and retrieved. Any item stored in the Pool may be removed automatically at any time without notification. If the Pool holds the only reference when this happens, the item might be deallocated. 使用示例可参考json包的Marshal函数。
@@ -35,11 +35,11 @@ func Marshal(v interface{}) ([]byte, error) { e := newEncodeState() // 从池中
     
 
     
-      <link rel="canonical" href="https://example.org/posts/sync-pool/">
+      <link rel="canonical" href="https://andyspf.github.io/posts/sync-pool/">
     
 
-    <meta property="og:url" content="https://example.org/posts/sync-pool/">
-  <meta property="og:site_name" content="My New Hugo Site">
+    <meta property="og:url" content="https://andyspf.github.io/posts/sync-pool/">
+  <meta property="og:site_name" content="日常学习记录总结">
   <meta property="og:title" content="golang官方包源码阅读记录 sync.Pool">
   <meta property="og:description" content="功能介绍 golang的sync包是用于进行并发控制，其中sync.Pool是比较常用到的一个结构。其目的很简单：缓存已分配但暂时未使用的对象以便以后可以复用，避免大量创建临时对象，减轻GC压力。需要注意的是不要认为存入的对象和取出的对象之间有任何关系，池中的数据会在GC时被清空。如果pool中为空，则会返回自定义的New函数返回的对象。下面是摘抄的一小段官方注释：
 A Pool is a set of temporary objects that may be individually saved and retrieved. Any item stored in the Pool may be removed automatically at any time without notification. If the Pool holds the only reference when this happens, the item might be deallocated. 使用示例可参考json包的Marshal函数。
@@ -81,7 +81,7 @@ func Marshal(v interface{}) ([]byte, error) { e := newEncodeState() // 从池中
   <div class="flex-l justify-between items-center center">
     <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
       
-        My New Hugo Site
+        日常学习记录总结
       
     </a>
     <div class="flex-l items-center">
@@ -472,8 +472,8 @@ pool.victim 也是在这里用到的，如果在当前P的poolLocal中找不到�
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
-    &copy;  My New Hugo Site 2025 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://andyspf.github.io/" >
+    &copy;  日常学习记录总结 2025 
   </a>
     <div>
 <div class="ananke-socials">

@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Mutex on My New Hugo Site</title>
-    <link>https://example.org/tags/mutex/</link>
-    <description>Recent content in Mutex on My New Hugo Site</description>
+    <title>Mutex on 日常学习记录总结</title>
+    <link>https://andyspf.github.io/tags/mutex/</link>
+    <description>Recent content in Mutex on 日常学习记录总结</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Thu, 18 Jun 2020 00:00:00 +0000</lastBuildDate>
-    <atom:link href="https://example.org/tags/mutex/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="https://andyspf.github.io/tags/mutex/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>golang采坑记录之对map加锁</title>
-      <link>https://example.org/posts/trap1_map_lock/</link>
+      <link>https://andyspf.github.io/posts/trap1_map_lock/</link>
       <pubDate>Thu, 18 Jun 2020 00:00:00 +0000</pubDate>
-      <guid>https://example.org/posts/trap1_map_lock/</guid>
+      <guid>https://andyspf.github.io/posts/trap1_map_lock/</guid>
       <description>最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。&#xA;仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。&#xA;复现代码如下：&#xA;// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &amp;lt; 10000; i++ { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.</description>
     </item>
   </channel>
