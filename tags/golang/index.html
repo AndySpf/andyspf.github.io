@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+    
+      <link href="/tags/golang/index.xml" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
+      <link href="/tags/golang/index.xml" rel="feed" type="application/rss+xml" title="My New Hugo Site" />
+      
+    
+
+    
+      <link rel="canonical" href="https://example.org/tags/golang/">
+    
+
+    <meta property="og:url" content="https://example.org/tags/golang/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="Golang">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="website">
+
+  <meta itemprop="name" content="Golang">
+  <meta itemprop="datePublished" content="2021-01-10T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2021-01-10T00:00:00+00:00">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Golang">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+
+  <header>
+    <div class="pb3-m pb6-l bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+      <div class="tc-l pv3 ph3 ph4-ns">
+        <h1 class="f2 f-subheadline-l fw2 light-silver mb0 lh-title">
+          Golang
+        </h1>
+        
+      </div>
+    </div>
+  </header>
+
+
+    <main class="pb7" role="main">
+      
+  <article class="cf pa3 pa4-m pa4-l">
+    <div class="measure-wide-l center f4 lh-copy nested-copy-line-height nested-links mid-gray">
+      <p>Below you will find pages that utilize the taxonomy term “Golang”</p>
+    </div>
+  </article>
+  <div class="mw8 center">
+    <section class="flex-ns flex-wrap justify-around mt5">
+      
+        <div class="relative w-100  mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap8_defer/" class="link black dim">
+        defer引出的go函数调用惯例
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      问题 defer执行顺序是个老生常谈的问题，其顺序应该如下：
+return后如果有可计算表达式则先进行计算 检查是否有defer，如果有则从最后一个defer开始执行 顺序执行完所有defer，执行RET 额外需要注意，如果以传参方式传入defer一个变量，则以复制值的方式传入，值为定义defer时变量的值。 但是今天又被下面两种情况搞迷糊了，返回值是否匿名导致了结果完全不同：
+func g1() int { var b int defer func() { b++ }() return b } // 返回0 func g2() (b int) { defer func() { b++ }() return b } // 返回1 猜想 在匿名函数返回值中，需要在函数中重新申请地址存放返回值，整个函数里包括defer都是对这个地址的值进行的处理。但是由于go函数的调用惯例是调用者预留被调用函数的返回值空间，且一般（不考虑逃逸分析的情况）是在栈上预定的位子。因此在return时会把这个值放回预留出来的位置上，然后执行defer的逻辑。因此defer虽然把函数内的临时变量改变了，但是已经放到栈上的内容却没有变，调用者最终拿到的也是提前预留在栈上的地址表示的数。
+有名字的返回值情况下：栈中预留位置就是整个被调用者计算并赋值的位置。包括defer函数中的计算。
+接下来奉献出plan9的第一次，尝试通过看一下汇编来确定猜想：
+匿名返回值情况下： //go:noinline func myFunction() int { var myNum int defer func() { myNum += 7 }() myNum += 3 return myNum } func main() { myFunction() } 执行 go tool compile -N -S -l main.
+    </div>
+    <a href="/posts/trap8_defer/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100  mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap6_golang_err_redirect/" class="link black dim">
+        golang代码内更改os.Stderr
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      问题 尝试把某一个程序的标准错误和标准输出分开，于是分别给os.Stdout和os.Stderr指向了一个文件句柄。 测试发现：标准输出可以正常写入对应文件，但是故意留出的panic制造的标准错误却没写入。 解决 查了一圈发现是什么上层包的变量想赋值到底层runtime包是不行的。挺奇怪的。 不过倒是给出了解决方案 // 通过Dup2的系统调用复制文件描述符 if err = syscall.Dup2(int(file.Fd()), int(os.Stderr.Fd())); err != nil { fmt.Println(err) return err } // 内存回收前关闭文件描述符,该方法将一个对象和一个处理函数相关联，当这个对象处于不可访问时将会执行他的关联函数并解除关联。 下一次gc到达时他不可达且没有关联函数，此时就会删除它。实例：os.NewFile() runtime.SetFinalizer(stdErrFileHandler, func(fd *os.File) { fd.Close() }) 经验证：这样改动后panic日志可以正确写入指定的file
+    </div>
+    <a href="/posts/trap6_golang_err_redirect/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+    </section>
+  </div>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

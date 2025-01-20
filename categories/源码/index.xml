@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>源码 on My New Hugo Site</title>
+    <link>https://example.org/categories/%E6%BA%90%E7%A0%81/</link>
+    <description>Recent content in 源码 on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 10 Aug 2020 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/categories/%E6%BA%90%E7%A0%81/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>github.com/melbahja/got 号称比wget和curl更快的下载工具</title>
+      <link>https://example.org/posts/github-got/</link>
+      <pubDate>Mon, 10 Aug 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/github-got/</guid>
+      <description>刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：&#xA;设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 </description>
+    </item>
+  </channel>
+</rss>

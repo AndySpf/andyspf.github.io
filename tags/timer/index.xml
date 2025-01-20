@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Timer on My New Hugo Site</title>
+    <link>https://example.org/tags/timer/</link>
+    <description>Recent content in Timer on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sat, 28 Nov 2020 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/tags/timer/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>golang1.14.1版本timer调度问题</title>
+      <link>https://example.org/posts/trap7_golang_timer/</link>
+      <pubDate>Sat, 28 Nov 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap7_golang_timer/</guid>
+      <description>最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：&#xA;htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&amp;#34;runtimer: bad p&amp;#34;) } switch s := atomic.Load(&amp;amp;t.status); s { case timerWaiting: if t.when &amp;gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .</description>
+    </item>
+  </channel>
+</rss>

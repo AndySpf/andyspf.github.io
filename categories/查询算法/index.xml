@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>查询算法 on My New Hugo Site</title>
+    <link>https://example.org/categories/%E6%9F%A5%E8%AF%A2%E7%AE%97%E6%B3%95/</link>
+    <description>Recent content in 查询算法 on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 20 Jul 2020 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/categories/%E6%9F%A5%E8%AF%A2%E7%AE%97%E6%B3%95/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>根据ip获取其对应isp的实现测试</title>
+      <link>https://example.org/posts/ip-isp/</link>
+      <pubDate>Mon, 20 Jul 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/ip-isp/</guid>
+      <description>公司买了离线版ip段对应的isp以及城市信息文本，让搞一个在线接口返回一个ip对应的信息。个人能想到的三个方案如下：&#xA;1.二叉树 一个合格的ip地址可以转换为uint32类型。那么将这个无符号数用二进制表示，从高位到低位其实可以构建出一个二叉树，0为左子树，1为右子树。&#xA;树的高度理论上最大等于32，实际上查找的时候等于这个ip所在ip段的mask值。因为构建树的时候只要构建到mask值的高度就可以了，查询时只要判断左右子树都是nil那么就是找到了。&#xA;2.mysql 既然可以转换为uint32，那么直接根据mask值算出这个ip段最大ip对应的uint32和最小ip对应的uint32，然后加入mysql，做一个查询即可。 不耗费内存，只是查询速度太慢一般需要几百毫秒，因为需要用到&amp;gt;和&amp;lt;貌似不会用到索引。&#xA;3.二分法查找 将算出来的起始uint32构建成数组使用二分查找，最坏情况下时间复杂度log(n)，且占用内存比第一种方法少了一半。&#xA;代码可参考</description>
+    </item>
+  </channel>
+</rss>

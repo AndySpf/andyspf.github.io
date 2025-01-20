@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+    
+      <link href="/categories/%E6%9F%A5%E8%AF%A2%E7%AE%97%E6%B3%95/index.xml" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
+      <link href="/categories/%E6%9F%A5%E8%AF%A2%E7%AE%97%E6%B3%95/index.xml" rel="feed" type="application/rss+xml" title="My New Hugo Site" />
+      
+    
+
+    
+      <link rel="canonical" href="https://example.org/categories/%E6%9F%A5%E8%AF%A2%E7%AE%97%E6%B3%95/">
+    
+
+    <meta property="og:url" content="https://example.org/categories/%E6%9F%A5%E8%AF%A2%E7%AE%97%E6%B3%95/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="查询算法">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="website">
+
+  <meta itemprop="name" content="查询算法">
+  <meta itemprop="datePublished" content="2020-07-20T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-07-20T00:00:00+00:00">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="查询算法">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+
+  <header>
+    <div class="pb3-m pb6-l bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+      <div class="tc-l pv3 ph3 ph4-ns">
+        <h1 class="f2 f-subheadline-l fw2 light-silver mb0 lh-title">
+          查询算法
+        </h1>
+        
+      </div>
+    </div>
+  </header>
+
+
+    <main class="pb7" role="main">
+      
+  <article class="cf pa3 pa4-m pa4-l">
+    <div class="measure-wide-l center f4 lh-copy nested-copy-line-height nested-links mid-gray">
+      <p>Below you will find pages that utilize the taxonomy term “查询算法”</p>
+    </div>
+  </article>
+  <div class="mw8 center">
+    <section class="flex-ns flex-wrap justify-around mt5">
+      
+        <div class="relative w-100  mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/ip-isp/" class="link black dim">
+        根据ip获取其对应isp的实现测试
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      公司买了离线版ip段对应的isp以及城市信息文本，让搞一个在线接口返回一个ip对应的信息。个人能想到的三个方案如下：
+1.二叉树 一个合格的ip地址可以转换为uint32类型。那么将这个无符号数用二进制表示，从高位到低位其实可以构建出一个二叉树，0为左子树，1为右子树。
+树的高度理论上最大等于32，实际上查找的时候等于这个ip所在ip段的mask值。因为构建树的时候只要构建到mask值的高度就可以了，查询时只要判断左右子树都是nil那么就是找到了。
+2.mysql 既然可以转换为uint32，那么直接根据mask值算出这个ip段最大ip对应的uint32和最小ip对应的uint32，然后加入mysql，做一个查询即可。 不耗费内存，只是查询速度太慢一般需要几百毫秒，因为需要用到&gt;和&lt;貌似不会用到索引。
+3.二分法查找 将算出来的起始uint32构建成数组使用二分查找，最坏情况下时间复杂度log(n)，且占用内存比第一种方法少了一半。
+代码可参考
+    </div>
+    <a href="/posts/ip-isp/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+    </section>
+  </div>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

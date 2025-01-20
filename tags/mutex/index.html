@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+    
+      <link href="/tags/mutex/index.xml" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
+      <link href="/tags/mutex/index.xml" rel="feed" type="application/rss+xml" title="My New Hugo Site" />
+      
+    
+
+    
+      <link rel="canonical" href="https://example.org/tags/mutex/">
+    
+
+    <meta property="og:url" content="https://example.org/tags/mutex/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="Mutex">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="website">
+
+  <meta itemprop="name" content="Mutex">
+  <meta itemprop="datePublished" content="2020-06-18T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-06-18T00:00:00+00:00">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Mutex">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+
+  <header>
+    <div class="pb3-m pb6-l bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+      <div class="tc-l pv3 ph3 ph4-ns">
+        <h1 class="f2 f-subheadline-l fw2 light-silver mb0 lh-title">
+          Mutex
+        </h1>
+        
+      </div>
+    </div>
+  </header>
+
+
+    <main class="pb7" role="main">
+      
+  <article class="cf pa3 pa4-m pa4-l">
+    <div class="measure-wide-l center f4 lh-copy nested-copy-line-height nested-links mid-gray">
+      <p>Below you will find pages that utilize the taxonomy term “Mutex”</p>
+    </div>
+  </article>
+  <div class="mw8 center">
+    <section class="flex-ns flex-wrap justify-around mt5">
+      
+        <div class="relative w-100  mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap1_map_lock/" class="link black dim">
+        golang采坑记录之对map加锁
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。
+仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。
+复现代码如下：
+// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &lt; 10000; i++ { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.
+    </div>
+    <a href="/posts/trap1_map_lock/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+    </section>
+  </div>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

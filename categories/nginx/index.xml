@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Nginx on My New Hugo Site</title>
+    <link>https://example.org/categories/nginx/</link>
+    <description>Recent content in Nginx on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 08 Sep 2020 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/categories/nginx/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>nginx踩坑-SELinux强制控制访问</title>
+      <link>https://example.org/posts/trap5_nginx/</link>
+      <pubDate>Tue, 08 Sep 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap5_nginx/</guid>
+      <description>问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。&#xA;根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。&#xA;解决 原因是SELinux限制了nginx的转发功能：&#xA;cat /var/log/audit/audit.log | grep nginx | grep denied 查看日志中是否有对nginx的限制，如果有则执行:&#xA;cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx semodule -i mynginx.pp 其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。&#xA;除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:&#xA;setsebool -P httpd_can_network_connect 1 参考链接&#xA;SELinux 介绍 SElinux入门</description>
+    </item>
+  </channel>
+</rss>

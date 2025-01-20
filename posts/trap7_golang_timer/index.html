@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>golang1.14.1版本timer调度问题 | My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：
+htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&#34;runtimer: bad p&#34;) } switch s := atomic.Load(&amp;t.status); s { case timerWaiting: if t.when &gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+      <meta name="author" content = "spf">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/trap7_golang_timer/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/trap7_golang_timer/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="golang1.14.1版本timer调度问题">
+  <meta property="og:description" content="最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：
+htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&#34;runtimer: bad p&#34;) } switch s := atomic.Load(&amp;t.status); s { case timerWaiting: if t.when &gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2020-11-28T00:00:00+00:00">
+    <meta property="article:modified_time" content="2020-11-28T00:00:00+00:00">
+    <meta property="article:tag" content="踩坑">
+    <meta property="article:tag" content="Timer">
+
+  <meta itemprop="name" content="golang1.14.1版本timer调度问题">
+  <meta itemprop="description" content="最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：
+htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&#34;runtimer: bad p&#34;) } switch s := atomic.Load(&amp;t.status); s { case timerWaiting: if t.when &gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .">
+  <meta itemprop="datePublished" content="2020-11-28T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-11-28T00:00:00+00:00">
+  <meta itemprop="wordCount" content="145">
+  <meta itemprop="keywords" content="踩坑,Timer">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="golang1.14.1版本timer调度问题">
+  <meta name="twitter:description" content="最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：
+htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&#34;runtimer: bad p&#34;) } switch s := atomic.Load(&amp;t.status); s { case timerWaiting: if t.when &gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked ttu">
+          
+        Posts
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">golang1.14.1版本timer调度问题</h1>
+      
+      <p class="tracked">
+        By <strong>spf</strong>
+      </p>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2020-11-28T00:00:00Z">November 28, 2020</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><p>最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。
+尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。
+祭出dlv进行分析：</p>
+<ul>
+<li>htop确定是哪个线程吃掉了cpu</li>
+<li>attach到该客户端程序,切换到该线程下</li>
+<li>查看堆栈信息并单步跟踪代码运行
+结果发现一直在runtime/time.go的runtimer无限循环。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">runtimer</span>(<span style="color:#a6e22e">pp</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">p</span>, <span style="color:#a6e22e">now</span> <span style="color:#66d9ef">int64</span>) <span style="color:#66d9ef">int64</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">t</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">pp</span>.<span style="color:#a6e22e">timers</span>[<span style="color:#ae81ff">0</span>]
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">pp</span>.<span style="color:#a6e22e">ptr</span>() <span style="color:#f92672">!=</span> <span style="color:#a6e22e">pp</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;runtimer: bad p&#34;</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">switch</span> <span style="color:#a6e22e">s</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">Load</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">status</span>); <span style="color:#a6e22e">s</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">timerWaiting</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">when</span> &gt; <span style="color:#a6e22e">now</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#75715e">// Not ready to run.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">when</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">Cas</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">status</span>, <span style="color:#a6e22e">s</span>, <span style="color:#a6e22e">timerRunning</span>) {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// Note that runOneTimer may temporarily unlock
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#75715e">// pp.timersLock.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">runOneTimer</span>(<span style="color:#a6e22e">pp</span>, <span style="color:#a6e22e">t</span>, <span style="color:#a6e22e">now</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">...</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">timerModifying</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// Wait for modification to complete.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">osyield</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">...</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">default</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">badTimer</span>()
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>中间省略了一些无关代码，按照代码跟踪执行结果来看，是这个timer的status为timerModifying导致一直在无限循环的。<br>
+而且然后通过打印变量数据可以清楚的看到p下面第一个timer的状态一直是timerModifying。<br>
+那么来看一下这个状态是如何生成的</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// The timer is being modified.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// The timer will only have this status briefly.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#a6e22e">timerModifying</span>
+</span></span></code></pre></div><p>首先从定义上来说这个状态一定是短暂的，不会长期处于该状态。<br>
+然后追踪什么时候会将timer状态改为timerModifying。<br>
+经过排查，只有deltimer和modtimer函数会将其状态改变。<br>
+然后看这两个函数代码以modtimer为例：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">switch</span> <span style="color:#a6e22e">status</span> = <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">Load</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">status</span>); <span style="color:#a6e22e">status</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">timerWaiting</span>, <span style="color:#a6e22e">timerModifiedEarlier</span>, <span style="color:#a6e22e">timerModifiedLater</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">Cas</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">status</span>, <span style="color:#a6e22e">status</span>, <span style="color:#a6e22e">timerModifying</span>) {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">break</span> <span style="color:#a6e22e">loop</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">...</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span></code></pre></div><p>可以看到这两个函数里存在很多这种cas操作将status置为timeModifying，然后会在后半部分做一些数据更改，最后再将状态改为其他状态，等待执行。因此猜想问题可能就出在这里，这个modtimer和deltimer是可能被抢占的。那么假设刚把status置为timeModifying。如果此时被抢占，于此同时调度器运行到runtimer。应该就会导致这个问题的出现。 <br>
+好了，这个时候就要去github查一下issure了。一顿关键字搜索的确查到了这个问题：<a href="https://github.com/golang/go/issues/38070">runtime: timer self-deadlock due to preemption point</a><br>
+其对应解决方案也就是很简单的在状态改变期间防止抢占即可：<a href="https://github.com/golang/go/commit/b43b463d8fd3b15e9feb5156ff13b51ffa6f4599">解决方案</a><br>
+好了，结案。升级编译机版本去了。</p>
+<hr>
+<h3 id="qa">Q&amp;A:</h3>
+<p>之前为什么没有出现过？<br>
+之前一直是1.12版本的，那个版本的timer没有附到p下面，应该是一个全局的堆。实现方案不同可能当时没这个bug吧</p>
+<ul class="pa0">
+  
+   <li class="list di">
+     <a href="/tags/%E8%B8%A9%E5%9D%91/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">踩坑</a>
+   </li>
+  
+   <li class="list di">
+     <a href="/tags/timer/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Timer</a>
+   </li>
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+  <div class="bg-light-gray pa3 nested-list-reset nested-copy-line-height nested-links">
+    <p class="f5 b mb3">Related</p>
+    <ul class="pa0 list">
+	   
+	     <li  class="mb2">
+          <a href="/posts/trap6_golang_err_redirect/">golang代码内更改os.Stderr</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap5_nginx/">nginx踩坑-SELinux强制控制访问</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap4_slice_2/">slice踩坑-slice并发时是否需要加锁</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap3_slice_1/">slice踩坑-slice是如何传引用的</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap2_ssh/">ssh添加公钥后无法免秘钥访问</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap1_map_lock/">golang采坑记录之对map加锁</a>
+        </li>
+	    
+    </ul>
+</div>
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>(一)etcd记录-兼容http方式的grpc | My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：
+grpc &amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：
+grpc实现http的Handler 以serverClients函数为例，看下客户端的服务启动过程：
+gs = v3rpc.Server(s, tlscfg, gopts...) v3electionpb.RegisterElectionServer(gs, servElection) v3lockpb.RegisterLockServer(gs, servLock) if sctx.serviceRegister != nil { sctx.serviceRegister(gs) } handler = grpcHandlerFunc(gs, handler) 可以看到这里封装了grpcHandlerFunc将grpc的handler也转换为http.Handler,通过判断http协议版本以及请求头中grpc标志性的Content-Type=application/grpc来决定哪一部分流量走http，哪一部分走grpc。
+func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler { if otherHandler == nil { return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { grpcServer.ServeHTTP(w, r) }) } return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { if r.ProtoMajor == 2 &amp;&amp; strings.Contains(r.Header.Get(&#34;Content-Type&#34;), &#34;application/grpc&#34;) { grpcServer.ServeHTTP(w, r) // grpc.">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+      <meta name="author" content = "spf">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/etcd_1/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/etcd_1/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="(一)etcd记录-兼容http方式的grpc">
+  <meta property="og:description" content="etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：
+grpc &amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：
+grpc实现http的Handler 以serverClients函数为例，看下客户端的服务启动过程：
+gs = v3rpc.Server(s, tlscfg, gopts...) v3electionpb.RegisterElectionServer(gs, servElection) v3lockpb.RegisterLockServer(gs, servLock) if sctx.serviceRegister != nil { sctx.serviceRegister(gs) } handler = grpcHandlerFunc(gs, handler) 可以看到这里封装了grpcHandlerFunc将grpc的handler也转换为http.Handler,通过判断http协议版本以及请求头中grpc标志性的Content-Type=application/grpc来决定哪一部分流量走http，哪一部分走grpc。
+func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler { if otherHandler == nil { return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { grpcServer.ServeHTTP(w, r) }) } return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { if r.ProtoMajor == 2 &amp;&amp; strings.Contains(r.Header.Get(&#34;Content-Type&#34;), &#34;application/grpc&#34;) { grpcServer.ServeHTTP(w, r) // grpc.">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2021-03-18T00:00:00+00:00">
+    <meta property="article:modified_time" content="2021-03-18T00:00:00+00:00">
+    <meta property="article:tag" content="Etcd">
+    <meta property="article:tag" content="源码">
+
+  <meta itemprop="name" content="(一)etcd记录-兼容http方式的grpc">
+  <meta itemprop="description" content="etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：
+grpc &amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：
+grpc实现http的Handler 以serverClients函数为例，看下客户端的服务启动过程：
+gs = v3rpc.Server(s, tlscfg, gopts...) v3electionpb.RegisterElectionServer(gs, servElection) v3lockpb.RegisterLockServer(gs, servLock) if sctx.serviceRegister != nil { sctx.serviceRegister(gs) } handler = grpcHandlerFunc(gs, handler) 可以看到这里封装了grpcHandlerFunc将grpc的handler也转换为http.Handler,通过判断http协议版本以及请求头中grpc标志性的Content-Type=application/grpc来决定哪一部分流量走http，哪一部分走grpc。
+func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler { if otherHandler == nil { return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { grpcServer.ServeHTTP(w, r) }) } return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { if r.ProtoMajor == 2 &amp;&amp; strings.Contains(r.Header.Get(&#34;Content-Type&#34;), &#34;application/grpc&#34;) { grpcServer.ServeHTTP(w, r) // grpc.">
+  <meta itemprop="datePublished" content="2021-03-18T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2021-03-18T00:00:00+00:00">
+  <meta itemprop="wordCount" content="374">
+  <meta itemprop="keywords" content="Etcd,源码">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="(一)etcd记录-兼容http方式的grpc">
+  <meta name="twitter:description" content="etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：
+grpc &amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：
+grpc实现http的Handler 以serverClients函数为例，看下客户端的服务启动过程：
+gs = v3rpc.Server(s, tlscfg, gopts...) v3electionpb.RegisterElectionServer(gs, servElection) v3lockpb.RegisterLockServer(gs, servLock) if sctx.serviceRegister != nil { sctx.serviceRegister(gs) } handler = grpcHandlerFunc(gs, handler) 可以看到这里封装了grpcHandlerFunc将grpc的handler也转换为http.Handler,通过判断http协议版本以及请求头中grpc标志性的Content-Type=application/grpc来决定哪一部分流量走http，哪一部分走grpc。
+func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler { if otherHandler == nil { return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { grpcServer.ServeHTTP(w, r) }) } return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { if r.ProtoMajor == 2 &amp;&amp; strings.Contains(r.Header.Get(&#34;Content-Type&#34;), &#34;application/grpc&#34;) { grpcServer.ServeHTTP(w, r) // grpc.">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked ttu">
+          
+        Posts
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">(一)etcd记录-兼容http方式的grpc</h1>
+      
+      <p class="tracked">
+        By <strong>spf</strong>
+      </p>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2021-03-18T00:00:00Z">March 18, 2021</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><p>etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。
+其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。
+作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口)
+这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：</p>
+<h1 id="grpc--http">grpc &amp; http</h1>
+<p>etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：</p>
+<h2 id="grpc实现http的handler">grpc实现http的Handler</h2>
+<p>以serverClients函数为例，看下客户端的服务启动过程：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#a6e22e">gs</span> = <span style="color:#a6e22e">v3rpc</span>.<span style="color:#a6e22e">Server</span>(<span style="color:#a6e22e">s</span>, <span style="color:#a6e22e">tlscfg</span>, <span style="color:#a6e22e">gopts</span><span style="color:#f92672">...</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">v3electionpb</span>.<span style="color:#a6e22e">RegisterElectionServer</span>(<span style="color:#a6e22e">gs</span>, <span style="color:#a6e22e">servElection</span>)
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">v3lockpb</span>.<span style="color:#a6e22e">RegisterLockServer</span>(<span style="color:#a6e22e">gs</span>, <span style="color:#a6e22e">servLock</span>)
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sctx</span>.<span style="color:#a6e22e">serviceRegister</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sctx</span>.<span style="color:#a6e22e">serviceRegister</span>(<span style="color:#a6e22e">gs</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">handler</span> = <span style="color:#a6e22e">grpcHandlerFunc</span>(<span style="color:#a6e22e">gs</span>, <span style="color:#a6e22e">handler</span>)
+</span></span></code></pre></div><p>可以看到这里封装了grpcHandlerFunc将grpc的handler也转换为http.Handler,通过判断http协议版本以及请求头中grpc标志性的Content-Type=application/grpc来决定哪一部分流量走http，哪一部分走grpc。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">grpcHandlerFunc</span>(<span style="color:#a6e22e">grpcServer</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">grpc</span>.<span style="color:#a6e22e">Server</span>, <span style="color:#a6e22e">otherHandler</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Handler</span>) <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Handler</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">otherHandler</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">HandlerFunc</span>(<span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">w</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">ResponseWriter</span>, <span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">grpcServer</span>.<span style="color:#a6e22e">ServeHTTP</span>(<span style="color:#a6e22e">w</span>, <span style="color:#a6e22e">r</span>)
+</span></span><span style="display:flex;"><span>		})
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">HandlerFunc</span>(<span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">w</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">ResponseWriter</span>, <span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">ProtoMajor</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">Contains</span>(<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">Header</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#e6db74">&#34;Content-Type&#34;</span>), <span style="color:#e6db74">&#34;application/grpc&#34;</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">grpcServer</span>.<span style="color:#a6e22e">ServeHTTP</span>(<span style="color:#a6e22e">w</span>, <span style="color:#a6e22e">r</span>)  <span style="color:#75715e">// grpc.Server实现ServeHTTP方法，相当于实现了http.Handler接口，调用者要保证进入的流量是http2的。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">otherHandler</span>.<span style="color:#a6e22e">ServeHTTP</span>(<span style="color:#a6e22e">w</span>, <span style="color:#a6e22e">r</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	})
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这种方案其实就是实现了一个自定义mux，在调用自定义mux的ServerHTTP时分流，分别流向不同的流程。
+这样一来，两种流量最后可以都通过http.Server启动。</p>
+<h2 id="tcp多路复用">tcp多路复用</h2>
+<p>除此之外，etcd还使用了一种对tcplistener做上层封装的方案进行分流(github.com/soheilhy/cmux)。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">cMux</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">root</span>        <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Listener</span>   
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">bufLen</span>      <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">errh</span>        <span style="color:#a6e22e">ErrorHandler</span>      
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sls</span>         []<span style="color:#a6e22e">matchersListener</span>      <span style="color:#75715e">// 符合匹配模式的监听器数组
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">readTimeout</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Duration</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">donec</span>       <span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">mu</span>          <span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">Mutex</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>该对象提供Match方法，返回一个实现了net.Listener的muxListener</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cMux</span>) <span style="color:#a6e22e">Match</span>(<span style="color:#a6e22e">matchers</span> <span style="color:#f92672">...</span><span style="color:#a6e22e">Matcher</span>) <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Listener</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">mws</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">matchersToMatchWriters</span>(<span style="color:#a6e22e">matchers</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">MatchWithWriters</span>(<span style="color:#a6e22e">mws</span><span style="color:#f92672">...</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cMux</span>) <span style="color:#a6e22e">MatchWithWriters</span>(<span style="color:#a6e22e">matchers</span> <span style="color:#f92672">...</span><span style="color:#a6e22e">MatchWriter</span>) <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Listener</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ml</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">muxListener</span>{
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">Listener</span>: <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">root</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">connc</span>:    make(<span style="color:#66d9ef">chan</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>, <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">bufLen</span>),
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">donec</span>:    make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}),
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">sls</span> = append(<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">sls</span>, <span style="color:#a6e22e">matchersListener</span>{<span style="color:#a6e22e">ss</span>: <span style="color:#a6e22e">matchers</span>, <span style="color:#a6e22e">l</span>: <span style="color:#a6e22e">ml</span>})
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ml</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>可以看到调用Match方法，返回的muxListener会被加入到m.sls中，Match方法的参数Matcher就是匹配模式，
+可以选择匹配HTTP2,HTTP1,any等流量类型。<br>
+http.Server或者grpc.Server就可以用匹配了对应流量的listener启动服务。
+启动服务后就要用到net.Listener接口的Accept方法了，那么看下muxListener的实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">l</span> <span style="color:#a6e22e">muxListener</span>) <span style="color:#a6e22e">Accept</span>() (<span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">connc</span>:   <span style="color:#75715e">// 判断chan关闭还是有conn进来
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">ErrListenerClosed</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">donec</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">ErrServerClosed</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>这里需要等待muxListener.connc。 那么就很好猜测了，封装的cMux肯定会有什么操作的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cMux</span>) <span style="color:#a6e22e">Serve</span>() <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">......</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">root</span>.<span style="color:#a6e22e">Accept</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">handleErr</span>(<span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Add</span>(<span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">serve</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">donec</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">wg</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">m</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">cMux</span>) <span style="color:#a6e22e">serve</span>(<span style="color:#a6e22e">c</span> <span style="color:#a6e22e">net</span>.<span style="color:#a6e22e">Conn</span>, <span style="color:#a6e22e">donec</span> <span style="color:#f92672">&lt;-</span><span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}, <span style="color:#a6e22e">wg</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">WaitGroup</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Done</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">muc</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">newMuxConn</span>(<span style="color:#a6e22e">c</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">readTimeout</span> &gt; <span style="color:#a6e22e">noTimeout</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">SetReadDeadline</span>(<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Now</span>().<span style="color:#a6e22e">Add</span>(<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">readTimeout</span>))
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">sl</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">sls</span> {    <span style="color:#75715e">// 遍历监听器数组
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">s</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">sl</span>.<span style="color:#a6e22e">ss</span> {        <span style="color:#75715e">// 遍历监听器数组的匹配模式
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">matched</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>(<span style="color:#a6e22e">muc</span>.<span style="color:#a6e22e">Conn</span>, <span style="color:#a6e22e">muc</span>.<span style="color:#a6e22e">startSniffing</span>())   
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">matched</span> {  <span style="color:#75715e">// 如果匹配成功
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#a6e22e">muc</span>.<span style="color:#a6e22e">doneSniffing</span>()   
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">readTimeout</span> &gt; <span style="color:#a6e22e">noTimeout</span> {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">SetReadDeadline</span>(<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Time</span>{})
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">sl</span>.<span style="color:#a6e22e">l</span>.<span style="color:#a6e22e">connc</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">muc</span>:   <span style="color:#75715e">// 将conn扔进对应muxListener的connc管道中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">donec</span>:
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Close</span>()
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Close</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">ErrNotMatched</span>{<span style="color:#a6e22e">c</span>: <span style="color:#a6e22e">c</span>}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">handleErr</span>(<span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">_</span> = <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">root</span>.<span style="color:#a6e22e">Close</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>整个流程就很清晰了，通过listener接收到的conn，从报文中读出一部分数据用于判断是什么类型的协议，然后扔进对应的channel，而这个channel实现了net.Listener接口的Accept方法中阻塞的功能。用这种方式来实现流量分发。</p>
+<h2 id="grpc-gateway">grpc-gateway</h2>
+<p>当然上述两种方法都是分流后流向不同的处理方法。etcd还通过使用开源工具grpc-gateway包来将grpc方法转换为http接口。其接收http请求然后通过将http接口的请求参数转换为grpc请求参数后再调用grpc方法完成整个工作流。其与上述两种方案任意一种相结和就可以实现一个处理函数一个端口服务不同流量了。</p>
+<h2 id="思考">思考</h2>
+<p>这两种方案理论上都能实现分流。但是serverClients中为什么要区分是否启用tls并使用了不同的方案：</p>
+<ul>
+<li>不启用tls，使用cMux进行分流，不使用grpc.Server.ServeHTTP进行转换</li>
+<li>启用tls，则使用grpc.Server.ServeHTTP转换即可</li>
+</ul>
+<p>这里可以看到大概是因为没启用tls，所以才不能用grpc.Server.ServeHTTP转换，只能使用tcp多路复用去分流。可能是因为转换后就是用了go的HTTP2库，是不允许非tls连接的。如果使用grpc.Server.Serve()，则可以通过携带WithInsecure()函数关闭tls。 <br>
+这个结论很容易验证，得到验证后可以肯定这种处理方法和grpc.Server.Serve()的行为是有差异的（grpc的ServeHTTP方法上有注释说明可能会和grpc.Server.Serve()特性不一样）。搜了一番issue发现有人遇到过这问题，一部分人认为这种情况需要开两个端口，但是也有一部分人给出了解决方案:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// 修改grpcHandlerFunc函数，通过h2c包挟持非tls流量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">grpcHandlerFunc</span>(<span style="color:#a6e22e">grpcServer</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">grpc</span>.<span style="color:#a6e22e">Server</span>, <span style="color:#a6e22e">otherHandler</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Handler</span>) <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Handler</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">otherHandler</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">HandlerFunc</span>(<span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">w</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">ResponseWriter</span>, <span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">grpcServer</span>.<span style="color:#a6e22e">ServeHTTP</span>(<span style="color:#a6e22e">w</span>, <span style="color:#a6e22e">r</span>)
+</span></span><span style="display:flex;"><span>		})
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">h2c</span>.<span style="color:#a6e22e">NewHandler</span>(<span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">HandlerFunc</span>(<span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">w</span> <span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">ResponseWriter</span>, <span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">http</span>.<span style="color:#a6e22e">Request</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">ProtoMajor</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">2</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">strings</span>.<span style="color:#a6e22e">Contains</span>(<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">Header</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#e6db74">&#34;Content-Type&#34;</span>), <span style="color:#e6db74">&#34;application/grpc&#34;</span>) {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">grpcServer</span>.<span style="color:#a6e22e">ServeHTTP</span>(<span style="color:#a6e22e">w</span>, <span style="color:#a6e22e">r</span>)
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">otherHandler</span>.<span style="color:#a6e22e">ServeHTTP</span>(<span style="color:#a6e22e">w</span>, <span style="color:#a6e22e">r</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}), <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">http2</span>.<span style="color:#a6e22e">Server</span>{})
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ul class="pa0">
+  
+   <li class="list di">
+     <a href="/tags/etcd/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Etcd</a>
+   </li>
+  
+   <li class="list di">
+     <a href="/tags/%E6%BA%90%E7%A0%81/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">源码</a>
+   </li>
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+  <div class="bg-light-gray pa3 nested-list-reset nested-copy-line-height nested-links">
+    <p class="f5 b mb3">Related</p>
+    <ul class="pa0 list">
+	   
+	     <li  class="mb2">
+          <a href="/posts/sync-map/">golang官方包源码阅读记录 sync.Map</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-cond-once/">golang官方包源码阅读记录 sync.Cond和sync.Once</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-rwmutex/">golang官方包源码阅读记录 sync.RWMutex</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-waitgroup/">golang官方包源码阅读记录 sync.WaitGroup</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/github-got/">github.com/melbahja/got 号称比wget和curl更快的下载工具</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-mutex/">golang官方包源码阅读记录 sync.Mutex</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-pool/">golang官方包源码阅读记录 sync.Pool</a>
+        </li>
+	    
+    </ul>
+</div>
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

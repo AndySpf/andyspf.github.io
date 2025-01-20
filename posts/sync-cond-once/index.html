@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>golang官方包源码阅读记录 sync.Cond和sync.Once | My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="功能介绍 sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。 sync.Once可以保证一段代码只执行一次。 源码阅读 sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。
+使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。 解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。
+sync.Once通过使用一个整形记录使用次数，保证了要保护的资源在整个程序运行期间只会执行一次。当然该结构也不能复制，否则就起不到保护作用了
+sync.Cond结构 type Cond struct { noCopy noCopy // go vet检查 L Locker // 实现了Locker的锁 notify notifyList // sema中关于通知的实现， 下面另说 checker copyChecker // 自己实现的复制检查 } sync.Cond方法 Cond提供了Wait(),Single(),Broadcast()三个方法。功能以及实现逻辑很简单。
+Wait()功能为加锁后判断条件不满足阻塞等待通知
+Single()功能为随机通知一个groutine Broadcast()功能为通知全部groutine 三个方法如下
+type copyChecker uintptr func (c *copyChecker) check() { // 一个实例Cond，第一次调用的时候值是0，将checker的地址作为值赋值给checker，以后每次判断 当前地址是否和自身的值相同。如果有复制，则肯定要新开辟一段地址，那么checker地址肯定变，但是他的值却还是之前的地址，判断时就会不相同。 if uintptr(*c) != uintptr(unsafe.Pointer(c)) &amp;&amp; !atomic.CompareAndSwapUintptr((*uintptr)(c), 0, uintptr(unsafe.Pointer(c))) &amp;&amp; uintptr(*c) != uintptr(unsafe.Pointer(c)) { panic(&#34;sync.Cond is copied&#34;) } } // 用法模板 // c.">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+      <meta name="author" content = "spf">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/sync-cond-once/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/sync-cond-once/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="golang官方包源码阅读记录 sync.Cond和sync.Once">
+  <meta property="og:description" content="功能介绍 sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。 sync.Once可以保证一段代码只执行一次。 源码阅读 sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。
+使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。 解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。
+sync.Once通过使用一个整形记录使用次数，保证了要保护的资源在整个程序运行期间只会执行一次。当然该结构也不能复制，否则就起不到保护作用了
+sync.Cond结构 type Cond struct { noCopy noCopy // go vet检查 L Locker // 实现了Locker的锁 notify notifyList // sema中关于通知的实现， 下面另说 checker copyChecker // 自己实现的复制检查 } sync.Cond方法 Cond提供了Wait(),Single(),Broadcast()三个方法。功能以及实现逻辑很简单。
+Wait()功能为加锁后判断条件不满足阻塞等待通知
+Single()功能为随机通知一个groutine Broadcast()功能为通知全部groutine 三个方法如下
+type copyChecker uintptr func (c *copyChecker) check() { // 一个实例Cond，第一次调用的时候值是0，将checker的地址作为值赋值给checker，以后每次判断 当前地址是否和自身的值相同。如果有复制，则肯定要新开辟一段地址，那么checker地址肯定变，但是他的值却还是之前的地址，判断时就会不相同。 if uintptr(*c) != uintptr(unsafe.Pointer(c)) &amp;&amp; !atomic.CompareAndSwapUintptr((*uintptr)(c), 0, uintptr(unsafe.Pointer(c))) &amp;&amp; uintptr(*c) != uintptr(unsafe.Pointer(c)) { panic(&#34;sync.Cond is copied&#34;) } } // 用法模板 // c.">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2020-11-04T00:00:00+00:00">
+    <meta property="article:modified_time" content="2020-11-04T00:00:00+00:00">
+    <meta property="article:tag" content="源码">
+    <meta property="article:tag" content="Sync">
+
+  <meta itemprop="name" content="golang官方包源码阅读记录 sync.Cond和sync.Once">
+  <meta itemprop="description" content="功能介绍 sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。 sync.Once可以保证一段代码只执行一次。 源码阅读 sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。
+使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。 解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。
+sync.Once通过使用一个整形记录使用次数，保证了要保护的资源在整个程序运行期间只会执行一次。当然该结构也不能复制，否则就起不到保护作用了
+sync.Cond结构 type Cond struct { noCopy noCopy // go vet检查 L Locker // 实现了Locker的锁 notify notifyList // sema中关于通知的实现， 下面另说 checker copyChecker // 自己实现的复制检查 } sync.Cond方法 Cond提供了Wait(),Single(),Broadcast()三个方法。功能以及实现逻辑很简单。
+Wait()功能为加锁后判断条件不满足阻塞等待通知
+Single()功能为随机通知一个groutine Broadcast()功能为通知全部groutine 三个方法如下
+type copyChecker uintptr func (c *copyChecker) check() { // 一个实例Cond，第一次调用的时候值是0，将checker的地址作为值赋值给checker，以后每次判断 当前地址是否和自身的值相同。如果有复制，则肯定要新开辟一段地址，那么checker地址肯定变，但是他的值却还是之前的地址，判断时就会不相同。 if uintptr(*c) != uintptr(unsafe.Pointer(c)) &amp;&amp; !atomic.CompareAndSwapUintptr((*uintptr)(c), 0, uintptr(unsafe.Pointer(c))) &amp;&amp; uintptr(*c) != uintptr(unsafe.Pointer(c)) { panic(&#34;sync.Cond is copied&#34;) } } // 用法模板 // c.">
+  <meta itemprop="datePublished" content="2020-11-04T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-11-04T00:00:00+00:00">
+  <meta itemprop="wordCount" content="207">
+  <meta itemprop="keywords" content="源码,Sync">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="golang官方包源码阅读记录 sync.Cond和sync.Once">
+  <meta name="twitter:description" content="功能介绍 sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。 sync.Once可以保证一段代码只执行一次。 源码阅读 sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。
+使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。 解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。
+sync.Once通过使用一个整形记录使用次数，保证了要保护的资源在整个程序运行期间只会执行一次。当然该结构也不能复制，否则就起不到保护作用了
+sync.Cond结构 type Cond struct { noCopy noCopy // go vet检查 L Locker // 实现了Locker的锁 notify notifyList // sema中关于通知的实现， 下面另说 checker copyChecker // 自己实现的复制检查 } sync.Cond方法 Cond提供了Wait(),Single(),Broadcast()三个方法。功能以及实现逻辑很简单。
+Wait()功能为加锁后判断条件不满足阻塞等待通知
+Single()功能为随机通知一个groutine Broadcast()功能为通知全部groutine 三个方法如下
+type copyChecker uintptr func (c *copyChecker) check() { // 一个实例Cond，第一次调用的时候值是0，将checker的地址作为值赋值给checker，以后每次判断 当前地址是否和自身的值相同。如果有复制，则肯定要新开辟一段地址，那么checker地址肯定变，但是他的值却还是之前的地址，判断时就会不相同。 if uintptr(*c) != uintptr(unsafe.Pointer(c)) &amp;&amp; !atomic.CompareAndSwapUintptr((*uintptr)(c), 0, uintptr(unsafe.Pointer(c))) &amp;&amp; uintptr(*c) != uintptr(unsafe.Pointer(c)) { panic(&#34;sync.Cond is copied&#34;) } } // 用法模板 // c.">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked ttu">
+          
+        Posts
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">golang官方包源码阅读记录 sync.Cond和sync.Once</h1>
+      
+      <p class="tracked">
+        By <strong>spf</strong>
+      </p>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2020-11-04T00:00:00Z">November 4, 2020</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><h2 id="功能介绍">功能介绍</h2>
+<pre><code>	sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。
+	sync.Once可以保证一段代码只执行一次。
+</code></pre>
+<h2 id="源码阅读">源码阅读</h2>
+<p>sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。<br>
+使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。   解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 <br>
+相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。</p>
+<p>sync.Once通过使用一个整形记录使用次数，保证了要保护的资源在整个程序运行期间只会执行一次。当然该结构也不能复制，否则就起不到保护作用了</p>
+<h3 id="synccond结构">sync.Cond结构</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Cond</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">noCopy</span> <span style="color:#a6e22e">noCopy</span>        <span style="color:#75715e">// go vet检查
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">L</span> <span style="color:#a6e22e">Locker</span>             <span style="color:#75715e">// 实现了Locker的锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">notify</span>  <span style="color:#a6e22e">notifyList</span>   <span style="color:#75715e">// sema中关于通知的实现， 下面另说
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">checker</span> <span style="color:#a6e22e">copyChecker</span>  <span style="color:#75715e">// 自己实现的复制检查
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><h3 id="synccond方法">sync.Cond方法</h3>
+<p>Cond提供了Wait(),Single(),Broadcast()三个方法。功能以及实现逻辑很简单。<br>
+Wait()功能为加锁后判断条件不满足阻塞等待通知<br>
+Single()功能为随机通知一个groutine <br>
+Broadcast()功能为通知全部groutine   <br>
+<em><strong>三个方法如下</strong></em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">copyChecker</span> <span style="color:#66d9ef">uintptr</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">copyChecker</span>) <span style="color:#a6e22e">check</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 一个实例Cond，第一次调用的时候值是0，将checker的地址作为值赋值给checker，以后每次判断
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">当前地址是否和自身的值相同</span><span style="color:#960050;background-color:#1e0010">。</span><span style="color:#a6e22e">如果有复制</span><span style="color:#960050;background-color:#1e0010">，</span><span style="color:#a6e22e">则肯定要新开辟一段地址</span><span style="color:#960050;background-color:#1e0010">，</span><span style="color:#a6e22e">那么checker地址肯定变</span><span style="color:#960050;background-color:#1e0010">，</span><span style="color:#a6e22e">但是他的值却还是之前的地址</span><span style="color:#960050;background-color:#1e0010">，</span><span style="color:#a6e22e">判断时就会不相同</span><span style="color:#960050;background-color:#1e0010">。</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> uintptr(<span style="color:#f92672">*</span><span style="color:#a6e22e">c</span>) <span style="color:#f92672">!=</span> uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">c</span>)) <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>		!<span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">CompareAndSwapUintptr</span>((<span style="color:#f92672">*</span><span style="color:#66d9ef">uintptr</span>)(<span style="color:#a6e22e">c</span>), <span style="color:#ae81ff">0</span>, uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">c</span>))) <span style="color:#f92672">&amp;&amp;</span>
+</span></span><span style="display:flex;"><span>		uintptr(<span style="color:#f92672">*</span><span style="color:#a6e22e">c</span>) <span style="color:#f92672">!=</span> uintptr(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">c</span>)) {
+</span></span><span style="display:flex;"><span>		panic(<span style="color:#e6db74">&#34;sync.Cond is copied&#34;</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 用法模板
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//    c.L.Lock()
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//    for !condition() {
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//        c.Wait()
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//    }
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//    ... make use of condition ...
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">//    c.L.Unlock()
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Cond</span>) <span style="color:#a6e22e">Wait</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">checker</span>.<span style="color:#a6e22e">check</span>()  
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">t</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">runtime_notifyListAdd</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">notify</span>)   <span style="color:#75715e">// 添加一个元素到待通知列表里
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">L</span>.<span style="color:#a6e22e">Unlock</span>()                             <span style="color:#75715e">// 解锁，也就是阻塞等待的时候是不持有锁的，一直到被通知开始运行才再次持有锁，避免死锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">runtime_notifyListWait</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">notify</span>, <span style="color:#a6e22e">t</span>)     <span style="color:#75715e">// 开始等待通知
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">L</span>.<span style="color:#a6e22e">Lock</span>()								<span style="color:#75715e">// 加锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 允许但不强制要求在调用期间持有锁。主要是为了与Wait做区分，Wait必须要求持有锁才能调用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Cond</span>) <span style="color:#a6e22e">Signal</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">checker</span>.<span style="color:#a6e22e">check</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">runtime_notifyListNotifyOne</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">notify</span>)   <span style="color:#75715e">// 释放一个信号通知随机一个groutine恢复
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 允许但不强制要求在调用期间持有锁。主要是为了与Wait做区分，Wait必须要求持有锁才能调用
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Cond</span>) <span style="color:#a6e22e">Broadcast</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">checker</span>.<span style="color:#a6e22e">check</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">runtime_notifyListNotifyAll</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">notify</span>)   <span style="color:#75715e">// 通知所有groutine恢复
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><hr>
+<h3 id="synconce结构">sync.Once结构</h3>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">Once</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// done用来记录被保护的资源是否已经执行过
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">done</span> <span style="color:#66d9ef">uint32</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">m</span>    <span style="color:#a6e22e">Mutex</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h3 id="synconce方法">sync.Once方法</h3>
+<p>sync.Once提供Do方法，即传入要保护的内容
+<em><strong>方法如下</strong></em></p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">o</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Once</span>) <span style="color:#a6e22e">Do</span>(<span style="color:#a6e22e">f</span> <span style="color:#66d9ef">func</span>()) {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 如果原子操作取出done为0，则证明没有执行，执行f()
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 注意这里不采用CAS操作的原因是，如果并发执行，判断不能获取到修改权利的groutiyne则直接返回
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// ，不用等待了。 这就违背了该函数的功能。Do必须保证在返回时，传入的f()已经执行完了。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 因此必须要在要在doSlow中加锁（可能有多个groutine取出done时都是0都会进入慢路径）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 这也是done加1的操作要在f执行完后进行的原因
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">LoadUint32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">o</span>.<span style="color:#a6e22e">done</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// Outlined slow-path to allow inlining of the fast-path.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">o</span>.<span style="color:#a6e22e">doSlow</span>(<span style="color:#a6e22e">f</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">o</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">Once</span>) <span style="color:#a6e22e">doSlow</span>(<span style="color:#a6e22e">f</span> <span style="color:#66d9ef">func</span>()) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">o</span>.<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">o</span>.<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">o</span>.<span style="color:#a6e22e">done</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {   <span style="color:#75715e">// 取到锁的groutine再次判断如果是0才执行f并将done加1
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">StoreUint32</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">o</span>.<span style="color:#a6e22e">done</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">f</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><ul class="pa0">
+  
+   <li class="list di">
+     <a href="/tags/%E6%BA%90%E7%A0%81/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">源码</a>
+   </li>
+  
+   <li class="list di">
+     <a href="/tags/sync/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Sync</a>
+   </li>
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+  <div class="bg-light-gray pa3 nested-list-reset nested-copy-line-height nested-links">
+    <p class="f5 b mb3">Related</p>
+    <ul class="pa0 list">
+	   
+	     <li  class="mb2">
+          <a href="/posts/sync-rwmutex/">golang官方包源码阅读记录 sync.RWMutex</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-waitgroup/">golang官方包源码阅读记录 sync.WaitGroup</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-mutex/">golang官方包源码阅读记录 sync.Mutex</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-pool/">golang官方包源码阅读记录 sync.Pool</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/github-got/">github.com/melbahja/got 号称比wget和curl更快的下载工具</a>
+        </li>
+	    
+    </ul>
+</div>
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

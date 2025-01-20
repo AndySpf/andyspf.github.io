@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>github.com/melbahja/got 号称比wget和curl更快的下载工具 | My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：
+设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 ">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+      <meta name="author" content = "spf">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/github-got/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/github-got/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="github.com/melbahja/got 号称比wget和curl更快的下载工具">
+  <meta property="og:description" content="刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：
+设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 ">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2020-08-10T00:00:00+00:00">
+    <meta property="article:modified_time" content="2020-08-10T00:00:00+00:00">
+    <meta property="article:tag" content="源码">
+    <meta property="article:tag" content="下载器">
+
+  <meta itemprop="name" content="github.com/melbahja/got 号称比wget和curl更快的下载工具">
+  <meta itemprop="description" content="刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：
+设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 ">
+  <meta itemprop="datePublished" content="2020-08-10T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-08-10T00:00:00+00:00">
+  <meta itemprop="wordCount" content="5">
+  <meta itemprop="keywords" content="源码,下载器">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="github.com/melbahja/got 号称比wget和curl更快的下载工具">
+  <meta name="twitter:description" content="刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：
+设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 ">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked ttu">
+          
+        Posts
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">github.com/melbahja/got 号称比wget和curl更快的下载工具</h1>
+      
+      <p class="tracked">
+        By <strong>spf</strong>
+      </p>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2020-08-10T00:00:00Z">August 10, 2020</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><p>刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：</p>
+<h3 id="设计思路">设计思路</h3>
+<ol>
+<li>首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。</li>
+<li>根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk</li>
+<li>根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。</li>
+</ol>
+<ul class="pa0">
+  
+   <li class="list di">
+     <a href="/tags/%E6%BA%90%E7%A0%81/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">源码</a>
+   </li>
+  
+   <li class="list di">
+     <a href="/tags/%E4%B8%8B%E8%BD%BD%E5%99%A8/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">下载器</a>
+   </li>
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+  <div class="bg-light-gray pa3 nested-list-reset nested-copy-line-height nested-links">
+    <p class="f5 b mb3">Related</p>
+    <ul class="pa0 list">
+	   
+	     <li  class="mb2">
+          <a href="/posts/sync-mutex/">golang官方包源码阅读记录 sync.Mutex</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-pool/">golang官方包源码阅读记录 sync.Pool</a>
+        </li>
+	    
+    </ul>
+</div>
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

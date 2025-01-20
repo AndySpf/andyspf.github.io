@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+    
+      <link href="/posts/index.xml" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
+      <link href="/posts/index.xml" rel="feed" type="application/rss+xml" title="My New Hugo Site" />
+      
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="Posts">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="website">
+
+  <meta itemprop="name" content="Posts">
+  <meta itemprop="datePublished" content="2021-04-18T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2021-04-18T00:00:00+00:00">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Posts">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+
+  <header>
+    <div class="pb3-m pb6-l bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+      <div class="tc-l pv3 ph3 ph4-ns">
+        <h1 class="f2 f-subheadline-l fw2 light-silver mb0 lh-title">
+          Posts
+        </h1>
+        
+      </div>
+    </div>
+  </header>
+
+
+    <main class="pb7" role="main">
+      
+  <article class="pa3 pa4-ns nested-copy-line-height">
+    <section class="cf ph3 ph5-l pv3 pv4-l f4 tc-l center measure-wide lh-copy mid-gray"></section>
+    <section class="flex-ns flex-wrap justify-around mt5">
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/github-got/" class="link black dim">
+        github.com/melbahja/got 号称比wget和curl更快的下载工具
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      刷社区发现这个号称比wget更快的下载器，拉下来学习一下设计思想：
+设计思路 首先向目标发起发起head请求，获取文件大小以及判断accept-ranges是否等于bytes，如果不符合分段请求的条件，或者拿不到文件大小，则直接返回。 根据目标文件大小以及并发数量计算每一个并发chunk需要下载的内容，以及有多少个chunk 根据chunk的数量进行不同的操作：如果是没有chunk，即head请求不符合预期则直接全量下载；如果是多个chunk，则将各自负责的那一部分按照顺序下载到不同的临时文件中，所有都下载完之后，将这写文件中的内容再按照顺序合并并输出到目标文件。 
+    </div>
+    <a href="/posts/github-got/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap4_slice_2/" class="link black dim">
+        slice踩坑-slice并发时是否需要加锁
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      问题 线上程序panic，被检测脚本重新拉起后收到告警。
+查看panic日志，发现是在slice执行append操作时panic了。
+一开始还感觉很奇怪，往源码里查了查。突然想起来这份代码之前已经出过没加锁panic的事故。
+按这个思路的确又找到了问题： 一个全局切片变量没加锁。两个groutine写入，一个做切片追加操作，一个对当前切片内的内容json序列化后，重新申请内存，赋值长度为0的新切片。 很小的概率下会导致切片在追加新元素时内存地址错误从而panic。
+复现代码如下：
+var All []int func g1() { for i := 0; i &lt; 100000; i++ { All = append(All, i) } } func g3() { for i := 0; i &lt; 100000; i++ { bs, err := json.Marshal(All) if err != nil { fmt.Println(err.Error()) } fmt.Println(string(bs)) All = make([]int, 0) } } func main() { go g1() go g3() select {} } 报错：unexpected fault address 0x5a7000
+    </div>
+    <a href="/posts/trap4_slice_2/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap3_slice_1/" class="link black dim">
+        slice踩坑-slice是如何传引用的
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。 模拟出问题的业务代码如下：
+type t struct { ss []int id int } func main(){ oldSlice := make([]int, 5, 8) for i := 0; i &lt; 5; i++ { oldSlice[i] = i } ts := []t{ {id: 0}, {id: 1}, {id: 2}, } for i := range ts { ts[i].ss = oldSlice } for i := range ts { if i%2 == 0 { ts[i].ss = append(ts[i].ss, i) } } fmt.Println(ts[0].ss) fmt.Println(ts[1].ss) fmt.
+    </div>
+    <a href="/posts/trap3_slice_1/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/ip-isp/" class="link black dim">
+        根据ip获取其对应isp的实现测试
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      公司买了离线版ip段对应的isp以及城市信息文本，让搞一个在线接口返回一个ip对应的信息。个人能想到的三个方案如下：
+1.二叉树 一个合格的ip地址可以转换为uint32类型。那么将这个无符号数用二进制表示，从高位到低位其实可以构建出一个二叉树，0为左子树，1为右子树。
+树的高度理论上最大等于32，实际上查找的时候等于这个ip所在ip段的mask值。因为构建树的时候只要构建到mask值的高度就可以了，查询时只要判断左右子树都是nil那么就是找到了。
+2.mysql 既然可以转换为uint32，那么直接根据mask值算出这个ip段最大ip对应的uint32和最小ip对应的uint32，然后加入mysql，做一个查询即可。 不耗费内存，只是查询速度太慢一般需要几百毫秒，因为需要用到&gt;和&lt;貌似不会用到索引。
+3.二分法查找 将算出来的起始uint32构建成数组使用二分查找，最坏情况下时间复杂度log(n)，且占用内存比第一种方法少了一半。
+代码可参考
+    </div>
+    <a href="/posts/ip-isp/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/sync-mutex/" class="link black dim">
+        golang官方包源码阅读记录 sync.Mutex
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      功能介绍 sync.Mutex是golang官方实现的互斥锁。这是一个公平锁，尽最大可能保证所有groutine有同等概率得到锁,不会出现某个groutine一直拿不到锁的情况。 这个是如何保证的呢？mutex分为两种状态，正常态和饥饿态。饥饿状态就是为了解决某些groutine在排队队列中一直竞争不到锁而设计出来的，一旦mutex变为饥饿态。释放锁的时候就会直接交给队列的第一个而不会让大家去竞争。从而保证了不会有尾部延时情况出现。 源码阅读 互斥锁中依然有大量的位运算以及很巧妙的设计,对着代码做一下注释：
+结构 // mutex是一个互斥的锁 // mutex的0值是没有上锁的状态，即mutex只要定义了，不比初始化就是就可用的。 // 一个mutex从第一次开始使用就不能被赋值，所以用函数传递mutex是不推荐的，必须要这样操作的话也只能传递指针。 type Mutex struct { state int32 sema uint32 } 可以看到Mutex下只有两个32位字段state和sema，也就是说8个字节就能表示一个互斥锁。
+其中state是表示整个锁的状态，这个属性可以被多个groutine访问，通过atmoic的原子操作避免竞争问题。
+需要注意的是这个int32中从低到高前三个bit为都是状态为。第一位表示是否锁定，第二位表示是否是唤醒状态，第三位表示是否是饥饿状态，再往高的位表示的是当前正在等待排队期望获取锁的groutine数量。
+sema则是信号量，其机制为：acquire时如果sema大于0，那么减一返回，否则休眠等待。release将sema加一，然后唤醒等待队列的一个goroutine。
+方法 Mutex互斥锁提供了Lock()和Unlock()方法。
+Lock()
+// Lock 锁定m. // 如果lock已经被使用了，则调用方会被阻塞直到mutex可用 func (m *Mutex) Lock() { // 类似上一篇的sync.Pool有慢获取一样，这里也分为快加锁和慢加锁 // 加锁的实质其实就是取得能修改m.state的权利 // 快速路： cas操作可以将m.state由0变为1 if atomic.CompareAndSwapInt32(&amp;m.state, 0, mutexLocked) { if race.Enabled { race.Acquire(unsafe.Pointer(m)) } return } // 如果无法获取锁，那么就走慢路径。这里单独抽出来作为一个独立函数是为了让快速路可以内联提升点性能。 m.lockSlow() } func (m *Mutex) lockSlow() { var waitStartTime int64 // 等待锁的时间，判断变身为饥饿锁的依据 starving := false // 当前groutine内表示是否是饥饿态，注意区分state中的饥饿态标识位 awoke := false // 当前groutine内表示是否是唤醒态，注意区分state中的唤醒态标识位 iter := 0 // 次数，自旋用到的，超过4次就不允许自旋了 old := m.
+    </div>
+    <a href="/posts/sync-mutex/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap2_ssh/" class="link black dim">
+        ssh添加公钥后无法免秘钥访问
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      服务器A的公钥放入服务器B的authorized_keys中后，从服务器A直接ssh登录服务器B，发现仍然需要输入密码。
+&gt; man sshd_config StrictModes Specifies whether sshd(8) should check file modes and ownership of the user’s files and home directory before accepting login. This is normally desirable because novices sometimes accidentally leave their directory or files world-writable. The default is “yes”. 查阅手册后发现： 严格模式下，ssh或者dropbear都会检测authorized_keys的权限，权限过大会认为该文件不可靠。一般将authorized_keys权限置为600。
+或者直接关掉StrictModes
+    </div>
+    <a href="/posts/trap2_ssh/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap1_map_lock/" class="link black dim">
+        golang采坑记录之对map加锁
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。
+仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。
+复现代码如下：
+// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &lt; 10000; i++ { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.
+    </div>
+    <a href="/posts/trap1_map_lock/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/sync-pool/" class="link black dim">
+        golang官方包源码阅读记录 sync.Pool
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      功能介绍 golang的sync包是用于进行并发控制，其中sync.Pool是比较常用到的一个结构。其目的很简单：缓存已分配但暂时未使用的对象以便以后可以复用，避免大量创建临时对象，减轻GC压力。需要注意的是不要认为存入的对象和取出的对象之间有任何关系，池中的数据会在GC时被清空。如果pool中为空，则会返回自定义的New函数返回的对象。下面是摘抄的一小段官方注释：
+A Pool is a set of temporary objects that may be individually saved and retrieved. Any item stored in the Pool may be removed automatically at any time without notification. If the Pool holds the only reference when this happens, the item might be deallocated. 使用示例可参考json包的Marshal函数。
+func Marshal(v interface{}) ([]byte, error) { e := newEncodeState() // 从池中去除一个对象 ...... encodeStatePool.Put(e) // 将从池中取出来的对象重新放入池中 return buf, nil } func newEncodeState() *encodeState { if v := encodeStatePool.
+    </div>
+    <a href="/posts/sync-pool/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+    </section>
+    <ul class="pagination pagination-default">
+      <li class="page-item">
+        <a href="/posts/" aria-label="First" class="page-link" role="button"><span aria-hidden="true">&laquo;&laquo;</span></a>
+      </li>
+      <li class="page-item">
+        <a href="/posts/" aria-label="Previous" class="page-link" role="button"><span aria-hidden="true">&laquo;</span></a>
+      </li>
+      <li class="page-item">
+        <a href="/posts/" aria-label="Page 1" class="page-link" role="button">1</a>
+      </li>
+      <li class="page-item active">
+        <a aria-current="page" aria-label="Page 2" class="page-link" role="button">2</a>
+      </li>
+      <li class="page-item disabled">
+        <a aria-disabled="true" aria-label="Next" class="page-link" role="button" tabindex="-1"><span aria-hidden="true">&raquo;</span></a>
+      </li>
+      <li class="page-item disabled">
+        <a aria-disabled="true" aria-label="Last" class="page-link" role="button" tabindex="-1"><span aria-hidden="true">&raquo;&raquo;</span></a>
+      </li>
+    </ul></article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

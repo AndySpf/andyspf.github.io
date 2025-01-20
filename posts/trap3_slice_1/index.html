@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>slice踩坑-slice是如何传引用的 | My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。 模拟出问题的业务代码如下：
+type t struct { ss []int id int } func main(){ oldSlice := make([]int, 5, 8) for i := 0; i &lt; 5; i&#43;&#43; { oldSlice[i] = i } ts := []t{ {id: 0}, {id: 1}, {id: 2}, } for i := range ts { ts[i].ss = oldSlice } for i := range ts { if i%2 == 0 { ts[i].ss = append(ts[i].ss, i) } } fmt.Println(ts[0].ss) fmt.Println(ts[1].ss) fmt.">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+      <meta name="author" content = "spf">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/trap3_slice_1/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/trap3_slice_1/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="slice踩坑-slice是如何传引用的">
+  <meta property="og:description" content="因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。 模拟出问题的业务代码如下：
+type t struct { ss []int id int } func main(){ oldSlice := make([]int, 5, 8) for i := 0; i &lt; 5; i&#43;&#43; { oldSlice[i] = i } ts := []t{ {id: 0}, {id: 1}, {id: 2}, } for i := range ts { ts[i].ss = oldSlice } for i := range ts { if i%2 == 0 { ts[i].ss = append(ts[i].ss, i) } } fmt.Println(ts[0].ss) fmt.Println(ts[1].ss) fmt.">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2020-07-22T00:00:00+00:00">
+    <meta property="article:modified_time" content="2020-07-22T00:00:00+00:00">
+    <meta property="article:tag" content="踩坑">
+    <meta property="article:tag" content="Slice">
+
+  <meta itemprop="name" content="slice踩坑-slice是如何传引用的">
+  <meta itemprop="description" content="因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。 模拟出问题的业务代码如下：
+type t struct { ss []int id int } func main(){ oldSlice := make([]int, 5, 8) for i := 0; i &lt; 5; i&#43;&#43; { oldSlice[i] = i } ts := []t{ {id: 0}, {id: 1}, {id: 2}, } for i := range ts { ts[i].ss = oldSlice } for i := range ts { if i%2 == 0 { ts[i].ss = append(ts[i].ss, i) } } fmt.Println(ts[0].ss) fmt.Println(ts[1].ss) fmt.">
+  <meta itemprop="datePublished" content="2020-07-22T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-07-22T00:00:00+00:00">
+  <meta itemprop="wordCount" content="124">
+  <meta itemprop="keywords" content="踩坑,Slice">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="slice踩坑-slice是如何传引用的">
+  <meta name="twitter:description" content="因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。 模拟出问题的业务代码如下：
+type t struct { ss []int id int } func main(){ oldSlice := make([]int, 5, 8) for i := 0; i &lt; 5; i&#43;&#43; { oldSlice[i] = i } ts := []t{ {id: 0}, {id: 1}, {id: 2}, } for i := range ts { ts[i].ss = oldSlice } for i := range ts { if i%2 == 0 { ts[i].ss = append(ts[i].ss, i) } } fmt.Println(ts[0].ss) fmt.Println(ts[1].ss) fmt.">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked ttu">
+          
+        Posts
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">slice踩坑-slice是如何传引用的</h1>
+      
+      <p class="tracked">
+        By <strong>spf</strong>
+      </p>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2020-07-22T00:00:00Z">July 22, 2020</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><p>因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。
+模拟出问题的业务代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">t</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ss</span> []<span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">id</span> <span style="color:#66d9ef">int</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>(){
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">oldSlice</span> <span style="color:#f92672">:=</span> make([]<span style="color:#66d9ef">int</span>, <span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">8</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">5</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">oldSlice</span>[<span style="color:#a6e22e">i</span>] = <span style="color:#a6e22e">i</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ts</span> <span style="color:#f92672">:=</span> []<span style="color:#a6e22e">t</span>{
+</span></span><span style="display:flex;"><span>		{<span style="color:#a6e22e">id</span>: <span style="color:#ae81ff">0</span>},
+</span></span><span style="display:flex;"><span>		{<span style="color:#a6e22e">id</span>: <span style="color:#ae81ff">1</span>},
+</span></span><span style="display:flex;"><span>		{<span style="color:#a6e22e">id</span>: <span style="color:#ae81ff">2</span>},
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">ts</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">ts</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">ss</span> = <span style="color:#a6e22e">oldSlice</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">ts</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">i</span><span style="color:#f92672">%</span><span style="color:#ae81ff">2</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">ts</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">ss</span> = append(<span style="color:#a6e22e">ts</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">ss</span>, <span style="color:#a6e22e">i</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">ts</span>[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">ss</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">ts</span>[<span style="color:#ae81ff">1</span>].<span style="color:#a6e22e">ss</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">ts</span>[<span style="color:#ae81ff">2</span>].<span style="color:#a6e22e">ss</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>最终输出结果应该</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span>[<span style="color:#ae81ff">0</span> <span style="color:#ae81ff">1</span> <span style="color:#ae81ff">2</span> <span style="color:#ae81ff">3</span> <span style="color:#ae81ff">4</span> <span style="color:#ae81ff">2</span>]
+</span></span><span style="display:flex;"><span>[<span style="color:#ae81ff">0</span> <span style="color:#ae81ff">1</span> <span style="color:#ae81ff">2</span> <span style="color:#ae81ff">3</span> <span style="color:#ae81ff">4</span>]
+</span></span><span style="display:flex;"><span>[<span style="color:#ae81ff">0</span> <span style="color:#ae81ff">1</span> <span style="color:#ae81ff">2</span> <span style="color:#ae81ff">3</span> <span style="color:#ae81ff">4</span> <span style="color:#ae81ff">2</span>]
+</span></span></code></pre></div><hr>
+<p>这块代码涉及了几个点：</p>
+<h3 id="切片是传引用的">切片是传引用的</h3>
+<p>复习下slice的结构</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">slice</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">array</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>    <span style="color:#75715e">// 指向array的指针
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">len</span>   <span style="color:#66d9ef">int</span>               <span style="color:#75715e">// 保存长度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">cap</span>   <span style="color:#66d9ef">int</span>               <span style="color:#75715e">// 保存容量
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>}
+</span></span></code></pre></div><p>这个代码中oldSlice有一个指向array的指针。 且本身的len为5 cap为8
+几个t.ss都是赋值的oldSlice，因此这几个slice都指向同一个array，且大家的len都为5。
+这也就是“切片传递是引用”的原因</p>
+<h3 id="传引用不等于他们完全就是一个东西">传引用不等于他们完全就是一个东西</h3>
+<p>三个tt实例虽然都是引用的oldSlice，但是他们三个各自的len和cap却是独立的。 <br>
+因此在第0个tt执行append操作，其值变为[0,1,2,3,4,0]后，第2个tt却仍然是[0,1,2,3,4],因为它的len还是5。<br>
+直到第2个tt也执行append操作，这时候它的len才会变为6，但是他却把index为5的元素给重写为了2。</p>
+<h3 id="切片扩容重新申请地址">切片扩容重新申请地址</h3>
+<p>index为5的元素重写为2, 且len没有超过cap，没有触发扩容。因此三个tt还是指向的同一个array。这个时候对于第0个tt来说就很悲催了， 自己追加的0莫名其妙的被第2个tt给覆盖掉了。<br>
+如果初始oldSlice的len就为8，或者第2个tt扩容后的len超过8。则不会出现这个问题，因为触发扩容重新申请内存，则扩容后会指向一个新的array。不会修改就的array。</p>
+<ul class="pa0">
+  
+   <li class="list di">
+     <a href="/tags/%E8%B8%A9%E5%9D%91/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">踩坑</a>
+   </li>
+  
+   <li class="list di">
+     <a href="/tags/slice/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Slice</a>
+   </li>
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+  <div class="bg-light-gray pa3 nested-list-reset nested-copy-line-height nested-links">
+    <p class="f5 b mb3">Related</p>
+    <ul class="pa0 list">
+	   
+	     <li  class="mb2">
+          <a href="/posts/trap2_ssh/">ssh添加公钥后无法免秘钥访问</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap1_map_lock/">golang采坑记录之对map加锁</a>
+        </li>
+	    
+    </ul>
+</div>
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

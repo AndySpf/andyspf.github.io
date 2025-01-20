@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Etcd on My New Hugo Site</title>
+    <link>https://example.org/tags/etcd/</link>
+    <description>Recent content in Etcd on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 18 Apr 2021 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/tags/etcd/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>(二)etcd记录-Put&amp;Watch的联系</title>
+      <link>https://example.org/posts/etcd_2/</link>
+      <pubDate>Sun, 18 Apr 2021 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/etcd_2/</guid>
+      <description>etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。&#xA;这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：&#xA;Put操作 整个put操作的流水线涉及了EtcdServer,raftNode,node,rawNode四个对象之间的通信，其中大量使用了管道通信，先按照我的理解大概画出通信流程帮助记忆，因为整个流程还是比较长的。 接下来跟着源代码走一遍这个流程：&#xA;从grpc server注册处可以看到，put的入口是kvServer的Put方法，该方法中其实就是调用了etcdServer.Put进行业务处理的,&#xA;func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) { ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now()) resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r}) // InternalRaftRequest是可以通过raft发送的所有请求的集合，这里把put的请求放进去，为raft的一致性同步过程做准备。 if err != nil { return nil, err } return resp.(*pb.PutResponse), nil } raftRequest方法展开后可以到达processInternalRaftRequestOnce方法，该方法就是实际处理一次raft操作的地方。&#xA;func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) { ... ch := s.w.Register(id) // 用id注册一个管道，当用相同id调用wait.Trigger方法时，响应结果会从管道中流出。id是生成器(idutil.Generator)生成的请求id cctx, cancel := context.WithTimeout(ctx, s.Cfg.ReqTimeout()) defer cancel() start := time.</description>
+    </item>
+    <item>
+      <title>(一)etcd记录-兼容http方式的grpc</title>
+      <link>https://example.org/posts/etcd_1/</link>
+      <pubDate>Thu, 18 Mar 2021 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/etcd_1/</guid>
+      <description>etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：&#xA;grpc &amp;amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：&#xA;grpc实现http的Handler 以serverClients函数为例，看下客户端的服务启动过程：&#xA;gs = v3rpc.Server(s, tlscfg, gopts...) v3electionpb.RegisterElectionServer(gs, servElection) v3lockpb.RegisterLockServer(gs, servLock) if sctx.serviceRegister != nil { sctx.serviceRegister(gs) } handler = grpcHandlerFunc(gs, handler) 可以看到这里封装了grpcHandlerFunc将grpc的handler也转换为http.Handler,通过判断http协议版本以及请求头中grpc标志性的Content-Type=application/grpc来决定哪一部分流量走http，哪一部分走grpc。&#xA;func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler { if otherHandler == nil { return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { grpcServer.ServeHTTP(w, r) }) } return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { if r.ProtoMajor == 2 &amp;amp;&amp;amp; strings.Contains(r.Header.Get(&amp;#34;Content-Type&amp;#34;), &amp;#34;application/grpc&amp;#34;) { grpcServer.ServeHTTP(w, r) // grpc.</description>
+    </item>
+  </channel>
+</rss>

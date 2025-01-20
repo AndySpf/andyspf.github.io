@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>nginx踩坑-SELinux强制控制访问 | My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。
+根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。
+解决 原因是SELinux限制了nginx的转发功能：
+cat /var/log/audit/audit.log | grep nginx | grep denied 查看日志中是否有对nginx的限制，如果有则执行:
+cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx semodule -i mynginx.pp 其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。
+除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:
+setsebool -P httpd_can_network_connect 1 参考链接
+SELinux 介绍 SElinux入门">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+      <meta name="author" content = "spf">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/trap5_nginx/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/trap5_nginx/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="nginx踩坑-SELinux强制控制访问">
+  <meta property="og:description" content="问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。
+根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。
+解决 原因是SELinux限制了nginx的转发功能：
+cat /var/log/audit/audit.log | grep nginx | grep denied 查看日志中是否有对nginx的限制，如果有则执行:
+cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx semodule -i mynginx.pp 其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。
+除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:
+setsebool -P httpd_can_network_connect 1 参考链接
+SELinux 介绍 SElinux入门">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2020-09-08T00:00:00+00:00">
+    <meta property="article:modified_time" content="2020-09-08T00:00:00+00:00">
+    <meta property="article:tag" content="踩坑">
+    <meta property="article:tag" content="Nginx">
+
+  <meta itemprop="name" content="nginx踩坑-SELinux强制控制访问">
+  <meta itemprop="description" content="问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。
+根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。
+解决 原因是SELinux限制了nginx的转发功能：
+cat /var/log/audit/audit.log | grep nginx | grep denied 查看日志中是否有对nginx的限制，如果有则执行:
+cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx semodule -i mynginx.pp 其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。
+除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:
+setsebool -P httpd_can_network_connect 1 参考链接
+SELinux 介绍 SElinux入门">
+  <meta itemprop="datePublished" content="2020-09-08T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-09-08T00:00:00+00:00">
+  <meta itemprop="wordCount" content="47">
+  <meta itemprop="keywords" content="踩坑,Nginx">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="nginx踩坑-SELinux强制控制访问">
+  <meta name="twitter:description" content="问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。
+根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。
+解决 原因是SELinux限制了nginx的转发功能：
+cat /var/log/audit/audit.log | grep nginx | grep denied 查看日志中是否有对nginx的限制，如果有则执行:
+cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx semodule -i mynginx.pp 其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。
+除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:
+setsebool -P httpd_can_network_connect 1 参考链接
+SELinux 介绍 SElinux入门">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked ttu">
+          
+        Posts
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">nginx踩坑-SELinux强制控制访问</h1>
+      
+      <p class="tracked">
+        By <strong>spf</strong>
+      </p>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2020-09-08T00:00:00Z">September 8, 2020</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><h2 id="问题">问题</h2>
+<p>项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。<br>
+根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。</p>
+<h2 id="解决">解决</h2>
+<p>原因是SELinux限制了nginx的转发功能：</p>
+<pre tabindex="0"><code>cat /var/log/audit/audit.log | grep nginx | grep denied
+</code></pre><p>查看日志中是否有对nginx的限制，如果有则执行:</p>
+<pre tabindex="0"><code>cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx
+semodule -i mynginx.pp
+</code></pre><p>其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。</p>
+<p>除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:</p>
+<pre tabindex="0"><code>setsebool -P httpd_can_network_connect 1
+</code></pre><p><a href="https://stackoverflow.com/questions/23948527/13-permission-denied-while-connecting-to-upstreamnginx">参考链接</a></p>
+<h2 id="selinux-介绍">SELinux 介绍</h2>
+<p><a href="https://linux.cn/article-7317-1.html">SElinux入门</a></p>
+<ul class="pa0">
+  
+   <li class="list di">
+     <a href="/tags/%E8%B8%A9%E5%9D%91/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">踩坑</a>
+   </li>
+  
+   <li class="list di">
+     <a href="/tags/nginx/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Nginx</a>
+   </li>
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+  <div class="bg-light-gray pa3 nested-list-reset nested-copy-line-height nested-links">
+    <p class="f5 b mb3">Related</p>
+    <ul class="pa0 list">
+	   
+	     <li  class="mb2">
+          <a href="/posts/trap4_slice_2/">slice踩坑-slice并发时是否需要加锁</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap3_slice_1/">slice踩坑-slice是如何传引用的</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap2_ssh/">ssh添加公钥后无法免秘钥访问</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/trap1_map_lock/">golang采坑记录之对map加锁</a>
+        </li>
+	    
+    </ul>
+</div>
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

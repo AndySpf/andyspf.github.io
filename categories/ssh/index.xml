@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Ssh on My New Hugo Site</title>
+    <link>https://example.org/categories/ssh/</link>
+    <description>Recent content in Ssh on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 30 Jun 2020 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/categories/ssh/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>ssh添加公钥后无法免秘钥访问</title>
+      <link>https://example.org/posts/trap2_ssh/</link>
+      <pubDate>Tue, 30 Jun 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap2_ssh/</guid>
+      <description>服务器A的公钥放入服务器B的authorized_keys中后，从服务器A直接ssh登录服务器B，发现仍然需要输入密码。&#xA;&amp;gt; man sshd_config StrictModes Specifies whether sshd(8) should check file modes and ownership of the user’s files and home directory before accepting login. This is normally desirable because novices sometimes accidentally leave their directory or files world-writable. The default is “yes”. 查阅手册后发现： 严格模式下，ssh或者dropbear都会检测authorized_keys的权限，权限过大会认为该文件不可靠。一般将authorized_keys权限置为600。&#xA;或者直接关掉StrictModes</description>
+    </item>
+  </channel>
+</rss>

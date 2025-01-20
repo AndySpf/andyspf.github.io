@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>golang采坑记录之对map加锁 | My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。
+仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。
+复现代码如下：
+// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &lt; 10000; i&#43;&#43; { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+      <meta name="author" content = "spf">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/trap1_map_lock/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/trap1_map_lock/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="golang采坑记录之对map加锁">
+  <meta property="og:description" content="最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。
+仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。
+复现代码如下：
+// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &lt; 10000; i&#43;&#43; { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2020-06-18T00:00:00+00:00">
+    <meta property="article:modified_time" content="2020-06-18T00:00:00+00:00">
+    <meta property="article:tag" content="踩坑">
+    <meta property="article:tag" content="Mutex">
+
+  <meta itemprop="name" content="golang采坑记录之对map加锁">
+  <meta itemprop="description" content="最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。
+仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。
+复现代码如下：
+// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &lt; 10000; i&#43;&#43; { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.">
+  <meta itemprop="datePublished" content="2020-06-18T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2020-06-18T00:00:00+00:00">
+  <meta itemprop="wordCount" content="122">
+  <meta itemprop="keywords" content="踩坑,Mutex">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="golang采坑记录之对map加锁">
+  <meta name="twitter:description" content="最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。
+仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。
+复现代码如下：
+// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &lt; 10000; i&#43;&#43; { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked ttu">
+          
+        Posts
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">golang采坑记录之对map加锁</h1>
+      
+      <p class="tracked">
+        By <strong>spf</strong>
+      </p>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2020-06-18T00:00:00Z">June 18, 2020</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><p>最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的,  <br>
+可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 <br>
+不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。<br>
+仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。   <br>
+相当于一个map读的时候有锁，写的时候完全无锁。</p>
+<p>复现代码如下：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// 定义一个目标map。且外部访问都是访问的该目标map
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">targetMap</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">M</span> <span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">int</span>]<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>][]<span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">targetMapInfo</span> = <span style="color:#a6e22e">targetMap</span>{<span style="color:#a6e22e">M</span>: make(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">int</span>]<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>][]<span style="color:#66d9ef">string</span>)}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">// 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">sourceMap</span> <span style="color:#66d9ef">struct</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">M</span> <span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">int</span>]<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>][]<span style="color:#66d9ef">string</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sync</span>.<span style="color:#a6e22e">RWMutex</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">var</span> <span style="color:#a6e22e">sourceMapInfo</span> = <span style="color:#a6e22e">sourceMap</span>{<span style="color:#a6e22e">M</span>: make(<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">int</span>]<span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>][]<span style="color:#66d9ef">string</span>)}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">write</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#a6e22e">read</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Sleep</span>(<span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Second</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">60</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">read</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">10000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>	    <span style="color:#75715e">// 目标map读取时加读锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">targetMapInfo</span>.<span style="color:#a6e22e">RLock</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">targetMapInfo</span>.<span style="color:#a6e22e">M</span>[<span style="color:#a6e22e">i</span>]
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;not find &#34;</span>, <span style="color:#a6e22e">i</span>)
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;find &#34;</span>, <span style="color:#a6e22e">i</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">targetMapInfo</span>.<span style="color:#a6e22e">RUnlock</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">write</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#ae81ff">0</span>; <span style="color:#a6e22e">i</span> &lt; <span style="color:#ae81ff">10000</span>; <span style="color:#a6e22e">i</span><span style="color:#f92672">++</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// 源map写入时不加任何保护或者用源map中改的sync.RWMutex加锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">sourceMapInfo</span>.<span style="color:#a6e22e">M</span>[<span style="color:#a6e22e">i</span>] = <span style="color:#66d9ef">map</span>[<span style="color:#66d9ef">string</span>][]<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;a&#34;</span>: []<span style="color:#66d9ef">string</span>{<span style="color:#e6db74">&#34;a1&#34;</span>, <span style="color:#e6db74">&#34;a2&#34;</span>}}
+</span></span><span style="display:flex;"><span>		
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// 目标map写入时加锁
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">targetMapInfo</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">targetMapInfo</span>.<span style="color:#a6e22e">M</span> = <span style="color:#a6e22e">sourceMapInfo</span>.<span style="color:#a6e22e">M</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#e6db74">&#34;write &#34;</span>, <span style="color:#a6e22e">i</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">targetMapInfo</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><hr>
+<p>原因：<br>
+map赋值是直接传递引用指针的，即目标map和源map是同一个东西。<br>
+因此在源map写入时没有加锁i，或者没有使用和读目标map时同一个锁。就自然会导致panic。</p>
+<p>修改方案：<br>
+1.直接对目标map赋值，使用读写锁控制读写冲突。<br>
+2.在源map写入时，用目标map中的sync.RWMutex加锁。</p>
+<p>提交代码时一定要-race检测一波。</p>
+<ul class="pa0">
+  
+   <li class="list di">
+     <a href="/tags/%E8%B8%A9%E5%9D%91/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">踩坑</a>
+   </li>
+  
+   <li class="list di">
+     <a href="/tags/mutex/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Mutex</a>
+   </li>
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>

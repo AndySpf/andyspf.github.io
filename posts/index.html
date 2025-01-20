@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en-us">
-  <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     
@@ -36,18 +36,18 @@
     
 
     
-      <link rel="canonical" href="http://localhost:1313/posts/">
+      <link rel="canonical" href="https://example.org/posts/">
     
 
-    <meta property="og:url" content="http://localhost:1313/posts/">
+    <meta property="og:url" content="https://example.org/posts/">
   <meta property="og:site_name" content="My New Hugo Site">
   <meta property="og:title" content="Posts">
   <meta property="og:locale" content="en_us">
   <meta property="og:type" content="website">
 
   <meta itemprop="name" content="Posts">
-  <meta itemprop="datePublished" content="2024-01-14T07:07:07+01:00">
-  <meta itemprop="dateModified" content="2024-01-14T07:07:07+01:00">
+  <meta itemprop="datePublished" content="2021-04-18T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2021-04-18T00:00:00+00:00">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Posts">
 
@@ -101,27 +101,242 @@
   <div class="bg-white mb3 pa4 gray overflow-hidden">
     <span class="f6 db">Posts</span>
     <h1 class="f3 near-black">
-      <a href="/posts/my-first-post/" class="link black dim">
-        My First Post
+      <a href="/posts/etcd_2/" class="link black dim">
+        (二)etcd记录-Put&amp;Watch的联系
       </a>
     </h1>
     <div class="nested-links f5 lh-copy nested-copy-line-height">
-      Introduction This is bold text, and this is emphasized text.
-Visit the Hugo website!
+      etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。
+这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：
+Put操作 整个put操作的流水线涉及了EtcdServer,raftNode,node,rawNode四个对象之间的通信，其中大量使用了管道通信，先按照我的理解大概画出通信流程帮助记忆，因为整个流程还是比较长的。 接下来跟着源代码走一遍这个流程：
+从grpc server注册处可以看到，put的入口是kvServer的Put方法，该方法中其实就是调用了etcdServer.Put进行业务处理的,
+func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) { ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now()) resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r}) // InternalRaftRequest是可以通过raft发送的所有请求的集合，这里把put的请求放进去，为raft的一致性同步过程做准备。 if err != nil { return nil, err } return resp.(*pb.PutResponse), nil } raftRequest方法展开后可以到达processInternalRaftRequestOnce方法，该方法就是实际处理一次raft操作的地方。
+func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) { ... ch := s.w.Register(id) // 用id注册一个管道，当用相同id调用wait.Trigger方法时，响应结果会从管道中流出。id是生成器(idutil.Generator)生成的请求id cctx, cancel := context.WithTimeout(ctx, s.Cfg.ReqTimeout()) defer cancel() start := time.
     </div>
-    <a href="/posts/my-first-post/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+    <a href="/posts/etcd_2/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
   </div>
 </div>
 
         </div>
       
-    </section></article>
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/etcd_1/" class="link black dim">
+        (一)etcd记录-兼容http方式的grpc
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      etcd是一个开源的可分布式部署的k-v存储系统，一般用来做配置共享、服务发现等需求。 其在k8s中起到了很关键的作用，主要功能为：存储k8s要持久化的数据以及保证分布式等需求集群的数据一致性。 作为一个35k星的开源项目很有必要学习一下其结构设计和代码设计(etcd相关源代码基于3.5.0-alpha.0实验版本,且只浏览v3版本接口) 这不是一个入门的使用说明，是对etcd中部分有趣的设计的分享：
+grpc &amp; http etcd的客户端和服务端使用了一元grpc(kv查询等)和双向流grpc(watch)通信方式，grpc的原理和基本使用就不再说了，记录下看到三个可以一次编码同时服务grpc和http流量的方法：
+grpc实现http的Handler 以serverClients函数为例，看下客户端的服务启动过程：
+gs = v3rpc.Server(s, tlscfg, gopts...) v3electionpb.RegisterElectionServer(gs, servElection) v3lockpb.RegisterLockServer(gs, servLock) if sctx.serviceRegister != nil { sctx.serviceRegister(gs) } handler = grpcHandlerFunc(gs, handler) 可以看到这里封装了grpcHandlerFunc将grpc的handler也转换为http.Handler,通过判断http协议版本以及请求头中grpc标志性的Content-Type=application/grpc来决定哪一部分流量走http，哪一部分走grpc。
+func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler { if otherHandler == nil { return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { grpcServer.ServeHTTP(w, r) }) } return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { if r.ProtoMajor == 2 &amp;&amp; strings.Contains(r.Header.Get(&#34;Content-Type&#34;), &#34;application/grpc&#34;) { grpcServer.ServeHTTP(w, r) // grpc.
+    </div>
+    <a href="/posts/etcd_1/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap8_defer/" class="link black dim">
+        defer引出的go函数调用惯例
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      问题 defer执行顺序是个老生常谈的问题，其顺序应该如下：
+return后如果有可计算表达式则先进行计算 检查是否有defer，如果有则从最后一个defer开始执行 顺序执行完所有defer，执行RET 额外需要注意，如果以传参方式传入defer一个变量，则以复制值的方式传入，值为定义defer时变量的值。 但是今天又被下面两种情况搞迷糊了，返回值是否匿名导致了结果完全不同：
+func g1() int { var b int defer func() { b++ }() return b } // 返回0 func g2() (b int) { defer func() { b++ }() return b } // 返回1 猜想 在匿名函数返回值中，需要在函数中重新申请地址存放返回值，整个函数里包括defer都是对这个地址的值进行的处理。但是由于go函数的调用惯例是调用者预留被调用函数的返回值空间，且一般（不考虑逃逸分析的情况）是在栈上预定的位子。因此在return时会把这个值放回预留出来的位置上，然后执行defer的逻辑。因此defer虽然把函数内的临时变量改变了，但是已经放到栈上的内容却没有变，调用者最终拿到的也是提前预留在栈上的地址表示的数。
+有名字的返回值情况下：栈中预留位置就是整个被调用者计算并赋值的位置。包括defer函数中的计算。
+接下来奉献出plan9的第一次，尝试通过看一下汇编来确定猜想：
+匿名返回值情况下： //go:noinline func myFunction() int { var myNum int defer func() { myNum += 7 }() myNum += 3 return myNum } func main() { myFunction() } 执行 go tool compile -N -S -l main.
+    </div>
+    <a href="/posts/trap8_defer/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap7_golang_timer/" class="link black dim">
+        golang1.14.1版本timer调度问题
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：
+htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&#34;runtimer: bad p&#34;) } switch s := atomic.Load(&amp;t.status); s { case timerWaiting: if t.when &gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .
+    </div>
+    <a href="/posts/trap7_golang_timer/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/sync-map/" class="link black dim">
+        golang官方包源码阅读记录 sync.Map
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      功能介绍 源码阅读 结构 方法 Add()
+Wait()
+state()
+    </div>
+    <a href="/posts/sync-map/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/sync-cond-once/" class="link black dim">
+        golang官方包源码阅读记录 sync.Cond和sync.Once
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      功能介绍 sync.Cond是一个条件锁。使用场景就是在你一个groutine已经获得锁后进行条件判断，如果不满足条件，直接等待通知，而不需要循环等下一次判断。 sync.Once可以保证一段代码只执行一次。 源码阅读 sync.Cond条件锁使用了Locker接口实现自己锁定的功能，一般可以直接使用Mutex或者RWMutex作为锁。
+使用场景比如：一个队列已经被写满了，写入也没有任何判断。这时如果直接再次写入，就会抢到锁后无法写入，然后其他读协程也抢不到锁，读写都无法进行死锁了。 解决这种问题， 每次抢到锁后尝试写入时先判断是否满了，满了的话则解锁进入循环，不断尝试；或者就是利用Cond解锁后等待通知。 相当于一个是自己盯着什么时候好，一个是等别人来告诉你已经好了。
+sync.Once通过使用一个整形记录使用次数，保证了要保护的资源在整个程序运行期间只会执行一次。当然该结构也不能复制，否则就起不到保护作用了
+sync.Cond结构 type Cond struct { noCopy noCopy // go vet检查 L Locker // 实现了Locker的锁 notify notifyList // sema中关于通知的实现， 下面另说 checker copyChecker // 自己实现的复制检查 } sync.Cond方法 Cond提供了Wait(),Single(),Broadcast()三个方法。功能以及实现逻辑很简单。
+Wait()功能为加锁后判断条件不满足阻塞等待通知
+Single()功能为随机通知一个groutine Broadcast()功能为通知全部groutine 三个方法如下
+type copyChecker uintptr func (c *copyChecker) check() { // 一个实例Cond，第一次调用的时候值是0，将checker的地址作为值赋值给checker，以后每次判断 当前地址是否和自身的值相同。如果有复制，则肯定要新开辟一段地址，那么checker地址肯定变，但是他的值却还是之前的地址，判断时就会不相同。 if uintptr(*c) != uintptr(unsafe.Pointer(c)) &amp;&amp; !atomic.CompareAndSwapUintptr((*uintptr)(c), 0, uintptr(unsafe.Pointer(c))) &amp;&amp; uintptr(*c) != uintptr(unsafe.Pointer(c)) { panic(&#34;sync.Cond is copied&#34;) } } // 用法模板 // c.
+    </div>
+    <a href="/posts/sync-cond-once/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/sync-rwmutex/" class="link black dim">
+        golang官方包源码阅读记录 sync.RWMutex
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      功能介绍 sync.Mutex是golang官方实现的读写互斥锁。目的是为了在读写分离的场景下提高锁的效率。该锁不限制并发读，但是对于并发读写以及并发写作限制 源码阅读 读写锁复用了Mutex的功能用于对写并发进行阻塞。对于读写分离方面，没有很复杂的逻辑，利用计数器以及groutine唤醒机制进行读写锁分离。
+结构 type RWMutex struct { w Mutex // 如果有写并发参与，则复用Mutex的功能进行阻塞 writerSem uint32 // 写角色信号量 readerSem uint32 // 读角色信号量 readerCount int32 // 当前有多少读并发 readerWait int32 // 开始进行写操作是有多少读操作未完成。需要写操作等待其完成 } 方法 RWMutex提供了Lock(),Unlock(),RLock(),RUnlock()四个方法来实现读写分离锁。
+Lock()
+func (rw *RWMutex) Lock() { if race.Enabled { _ = rw.w.state race.Disable() } // Lock函数是写锁，因此首先使用Mutex的lock功能限制其他写的groutine rw.w.Lock() // 然后判断当前是否还有读操作，将readerCount先变为负数。证明现在有写操作开始进行了 r := atomic.AddInt32(&amp;rw.readerCount, -rwmutexMaxReaders) + rwmutexMaxReaders // 如果r!=0也就是rw.readerCount大于0。那么证明当前的确还有读操作没进行完。 // 同时将readerWait置为当前readerCount的值，以便读锁解锁时可以正确-1 // 然后将进入睡眠等待读锁全部释放后将其唤醒 if r != 0 &amp;&amp; atomic.AddInt32(&amp;rw.readerWait, r) !
+    </div>
+    <a href="/posts/sync-rwmutex/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/sync-waitgroup/" class="link black dim">
+        golang官方包源码阅读记录 sync.WaitGroup
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      功能介绍 sync.WaitGroup是官方给出用于保证并发一致性的工具。他可以阻塞等待多个groutine任务完成后 再继续往下执行。 源码阅读 类似互斥锁那样，WaitGroup内部也运用了位运算以及groutine睡眠唤醒机制。来保证以最小代价正确计数以及成功唤醒阻塞等待的groutine。
+结构 type WaitGroup struct { noCopy noCopy // 64-bit value: high 32 bits are counter, low 32 bits are waiter count. // 64-bit atomic operations require 64-bit alignment, but 32-bit // compilers do not ensure it. So we allocate 12 bytes and then use // the aligned 8 bytes in them as state, and the other 4 as storage // for the sema. // 我们需要使用64位数据表示计数器：即高32位表示当前已添加任务的数量， // 后32位表示使用wait等待的数量。 // 因为这里需要对这个64位数字进行原子操作，32位编译器没法保证对齐。 // 所以干脆申请96位数据表示整个状态 // 其中有整齐的64位用来表示state进行计数，后面32位存储信号量 state1 [3]uint32 } 方法 WaitGroup提供了Wait(),Add(),Done()三个方法，其中Done方法就是调用Add(-1),没有什么特殊的地方
+    </div>
+    <a href="/posts/sync-waitgroup/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap6_golang_err_redirect/" class="link black dim">
+        golang代码内更改os.Stderr
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      问题 尝试把某一个程序的标准错误和标准输出分开，于是分别给os.Stdout和os.Stderr指向了一个文件句柄。 测试发现：标准输出可以正常写入对应文件，但是故意留出的panic制造的标准错误却没写入。 解决 查了一圈发现是什么上层包的变量想赋值到底层runtime包是不行的。挺奇怪的。 不过倒是给出了解决方案 // 通过Dup2的系统调用复制文件描述符 if err = syscall.Dup2(int(file.Fd()), int(os.Stderr.Fd())); err != nil { fmt.Println(err) return err } // 内存回收前关闭文件描述符,该方法将一个对象和一个处理函数相关联，当这个对象处于不可访问时将会执行他的关联函数并解除关联。 下一次gc到达时他不可达且没有关联函数，此时就会删除它。实例：os.NewFile() runtime.SetFinalizer(stdErrFileHandler, func(fd *os.File) { fd.Close() }) 经验证：这样改动后panic日志可以正确写入指定的file
+    </div>
+    <a href="/posts/trap6_golang_err_redirect/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+        <div class="relative w-100 w-30-l mb4 bg-white">
+          <div class="relative w-100 mb4 bg-white nested-copy-line-height">
+  <div class="bg-white mb3 pa4 gray overflow-hidden">
+    <span class="f6 db">Posts</span>
+    <h1 class="f3 near-black">
+      <a href="/posts/trap5_nginx/" class="link black dim">
+        nginx踩坑-SELinux强制控制访问
+      </a>
+    </h1>
+    <div class="nested-links f5 lh-copy nested-copy-line-height">
+      问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。
+根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。
+解决 原因是SELinux限制了nginx的转发功能：
+cat /var/log/audit/audit.log | grep nginx | grep denied 查看日志中是否有对nginx的限制，如果有则执行:
+cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx semodule -i mynginx.pp 其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。
+除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:
+setsebool -P httpd_can_network_connect 1 参考链接
+SELinux 介绍 SElinux入门
+    </div>
+    <a href="/posts/trap5_nginx/" class="ba b--moon-gray bg-light-gray br2 color-inherit dib f7 hover-bg-moon-gray link mt2 ph2 pv1">read more</a>
+  </div>
+</div>
+
+        </div>
+      
+    </section>
+    <ul class="pagination pagination-default">
+      <li class="page-item disabled">
+        <a aria-disabled="true" aria-label="First" class="page-link" role="button" tabindex="-1"><span aria-hidden="true">&laquo;&laquo;</span></a>
+      </li>
+      <li class="page-item disabled">
+        <a aria-disabled="true" aria-label="Previous" class="page-link" role="button" tabindex="-1"><span aria-hidden="true">&laquo;</span></a>
+      </li>
+      <li class="page-item active">
+        <a aria-current="page" aria-label="Page 1" class="page-link" role="button">1</a>
+      </li>
+      <li class="page-item">
+        <a href="/posts/page/2/" aria-label="Page 2" class="page-link" role="button">2</a>
+      </li>
+      <li class="page-item">
+        <a href="/posts/page/2/" aria-label="Next" class="page-link" role="button"><span aria-hidden="true">&raquo;</span></a>
+      </li>
+      <li class="page-item">
+        <a href="/posts/page/2/" aria-label="Last" class="page-link" role="button"><span aria-hidden="true">&raquo;&raquo;</span></a>
+      </li>
+    </ul></article>
 
     </main>
     <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
   <div class="flex justify-between">
-  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="http://localhost:1313/" >
-    &copy;  My New Hugo Site 2024 
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
   </a>
     <div>
 <div class="ananke-socials">

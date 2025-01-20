@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>踩坑 on My New Hugo Site</title>
+    <link>https://example.org/tags/%E8%B8%A9%E5%9D%91/</link>
+    <description>Recent content in 踩坑 on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 10 Jan 2021 00:00:00 +0000</lastBuildDate>
+    <atom:link href="https://example.org/tags/%E8%B8%A9%E5%9D%91/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>defer引出的go函数调用惯例</title>
+      <link>https://example.org/posts/trap8_defer/</link>
+      <pubDate>Sun, 10 Jan 2021 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap8_defer/</guid>
+      <description>问题 defer执行顺序是个老生常谈的问题，其顺序应该如下：&#xA;return后如果有可计算表达式则先进行计算 检查是否有defer，如果有则从最后一个defer开始执行 顺序执行完所有defer，执行RET 额外需要注意，如果以传参方式传入defer一个变量，则以复制值的方式传入，值为定义defer时变量的值。 但是今天又被下面两种情况搞迷糊了，返回值是否匿名导致了结果完全不同：&#xA;func g1() int { var b int defer func() { b++ }() return b } // 返回0 func g2() (b int) { defer func() { b++ }() return b } // 返回1 猜想 在匿名函数返回值中，需要在函数中重新申请地址存放返回值，整个函数里包括defer都是对这个地址的值进行的处理。但是由于go函数的调用惯例是调用者预留被调用函数的返回值空间，且一般（不考虑逃逸分析的情况）是在栈上预定的位子。因此在return时会把这个值放回预留出来的位置上，然后执行defer的逻辑。因此defer虽然把函数内的临时变量改变了，但是已经放到栈上的内容却没有变，调用者最终拿到的也是提前预留在栈上的地址表示的数。&#xA;有名字的返回值情况下：栈中预留位置就是整个被调用者计算并赋值的位置。包括defer函数中的计算。&#xA;接下来奉献出plan9的第一次，尝试通过看一下汇编来确定猜想：&#xA;匿名返回值情况下： //go:noinline func myFunction() int { var myNum int defer func() { myNum += 7 }() myNum += 3 return myNum } func main() { myFunction() } 执行 go tool compile -N -S -l main.</description>
+    </item>
+    <item>
+      <title>golang1.14.1版本timer调度问题</title>
+      <link>https://example.org/posts/trap7_golang_timer/</link>
+      <pubDate>Sat, 28 Nov 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap7_golang_timer/</guid>
+      <description>最近编译机go版本升级到1.14.1后，编译的新版本程序偶然出现hang住的情况(压测环境放在docker里只用一个p)。 尝试pprof发现无法使用。结合cpu占用高的问题猜测可能是调度除了问题导致无限循环。 祭出dlv进行分析：&#xA;htop确定是哪个线程吃掉了cpu attach到该客户端程序,切换到该线程下 查看堆栈信息并单步跟踪代码运行 结果发现一直在runtime/time.go的runtimer无限循环。 func runtimer(pp *p, now int64) int64 { for { t := pp.timers[0] if t.pp.ptr() != pp { throw(&amp;#34;runtimer: bad p&amp;#34;) } switch s := atomic.Load(&amp;amp;t.status); s { case timerWaiting: if t.when &amp;gt; now { // Not ready to run. return t.when } if !atomic.Cas(&amp;amp;t.status, s, timerRunning) { continue } // Note that runOneTimer may temporarily unlock // pp.timersLock. runOneTimer(pp, t, now) return 0 .</description>
+    </item>
+    <item>
+      <title>golang代码内更改os.Stderr</title>
+      <link>https://example.org/posts/trap6_golang_err_redirect/</link>
+      <pubDate>Fri, 18 Sep 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap6_golang_err_redirect/</guid>
+      <description>问题 尝试把某一个程序的标准错误和标准输出分开，于是分别给os.Stdout和os.Stderr指向了一个文件句柄。 测试发现：标准输出可以正常写入对应文件，但是故意留出的panic制造的标准错误却没写入。 解决 查了一圈发现是什么上层包的变量想赋值到底层runtime包是不行的。挺奇怪的。 不过倒是给出了解决方案 // 通过Dup2的系统调用复制文件描述符 if err = syscall.Dup2(int(file.Fd()), int(os.Stderr.Fd())); err != nil { fmt.Println(err) return err } // 内存回收前关闭文件描述符,该方法将一个对象和一个处理函数相关联，当这个对象处于不可访问时将会执行他的关联函数并解除关联。 下一次gc到达时他不可达且没有关联函数，此时就会删除它。实例：os.NewFile() runtime.SetFinalizer(stdErrFileHandler, func(fd *os.File) { fd.Close() }) 经验证：这样改动后panic日志可以正确写入指定的file</description>
+    </item>
+    <item>
+      <title>nginx踩坑-SELinux强制控制访问</title>
+      <link>https://example.org/posts/trap5_nginx/</link>
+      <pubDate>Tue, 08 Sep 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap5_nginx/</guid>
+      <description>问题 项目终于重构完。公司新搞了两个centos服务器,配置完nginx发现转发不可用。查error日志发现错误是：13: Permission denied。&#xA;根据以往经验赶紧去查下启动用户，发现的确不是root，然后更改为root。结果还是不行。但此时还是拘泥于目录或者文件权限的原因，继续查用到的目录，锁文件等是不是权限正确。浪费了很多时间，也没找到原因。最后证明还是google牛逼。。&#xA;解决 原因是SELinux限制了nginx的转发功能：&#xA;cat /var/log/audit/audit.log | grep nginx | grep denied 查看日志中是否有对nginx的限制，如果有则执行:&#xA;cat /var/log/audit/audit.log | grep nginx | grep denied | audit2allow -M mynginx semodule -i mynginx.pp 其中audit2allow命令应该是不存在的，centos可以通过yum install policycoreutils-python下载该命令。&#xA;除此之外如果httpd_can_network_connect没有开启(getsebool -a | grep httpd_can_network_connect)，则需要额外开启网络访问:&#xA;setsebool -P httpd_can_network_connect 1 参考链接&#xA;SELinux 介绍 SElinux入门</description>
+    </item>
+    <item>
+      <title>slice踩坑-slice并发时是否需要加锁</title>
+      <link>https://example.org/posts/trap4_slice_2/</link>
+      <pubDate>Thu, 06 Aug 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap4_slice_2/</guid>
+      <description>问题 线上程序panic，被检测脚本重新拉起后收到告警。&#xA;查看panic日志，发现是在slice执行append操作时panic了。&#xA;一开始还感觉很奇怪，往源码里查了查。突然想起来这份代码之前已经出过没加锁panic的事故。&#xA;按这个思路的确又找到了问题： 一个全局切片变量没加锁。两个groutine写入，一个做切片追加操作，一个对当前切片内的内容json序列化后，重新申请内存，赋值长度为0的新切片。 很小的概率下会导致切片在追加新元素时内存地址错误从而panic。&#xA;复现代码如下：&#xA;var All []int func g1() { for i := 0; i &amp;lt; 100000; i++ { All = append(All, i) } } func g3() { for i := 0; i &amp;lt; 100000; i++ { bs, err := json.Marshal(All) if err != nil { fmt.Println(err.Error()) } fmt.Println(string(bs)) All = make([]int, 0) } } func main() { go g1() go g3() select {} } 报错：unexpected fault address 0x5a7000</description>
+    </item>
+    <item>
+      <title>slice踩坑-slice是如何传引用的</title>
+      <link>https://example.org/posts/trap3_slice_1/</link>
+      <pubDate>Wed, 22 Jul 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap3_slice_1/</guid>
+      <description>因为运维的一个配置，前任留下的代码冒出了一个隐藏很深的bug。 模拟出问题的业务代码如下：&#xA;type t struct { ss []int id int } func main(){ oldSlice := make([]int, 5, 8) for i := 0; i &amp;lt; 5; i++ { oldSlice[i] = i } ts := []t{ {id: 0}, {id: 1}, {id: 2}, } for i := range ts { ts[i].ss = oldSlice } for i := range ts { if i%2 == 0 { ts[i].ss = append(ts[i].ss, i) } } fmt.Println(ts[0].ss) fmt.Println(ts[1].ss) fmt.</description>
+    </item>
+    <item>
+      <title>ssh添加公钥后无法免秘钥访问</title>
+      <link>https://example.org/posts/trap2_ssh/</link>
+      <pubDate>Tue, 30 Jun 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap2_ssh/</guid>
+      <description>服务器A的公钥放入服务器B的authorized_keys中后，从服务器A直接ssh登录服务器B，发现仍然需要输入密码。&#xA;&amp;gt; man sshd_config StrictModes Specifies whether sshd(8) should check file modes and ownership of the user’s files and home directory before accepting login. This is normally desirable because novices sometimes accidentally leave their directory or files world-writable. The default is “yes”. 查阅手册后发现： 严格模式下，ssh或者dropbear都会检测authorized_keys的权限，权限过大会认为该文件不可靠。一般将authorized_keys权限置为600。&#xA;或者直接关掉StrictModes</description>
+    </item>
+    <item>
+      <title>golang采坑记录之对map加锁</title>
+      <link>https://example.org/posts/trap1_map_lock/</link>
+      <pubDate>Thu, 18 Jun 2020 00:00:00 +0000</pubDate>
+      <guid>https://example.org/posts/trap1_map_lock/</guid>
+      <description>最近某运维突然发现报表中有一分半没有数据图了。于是呼叫我们开始检查。golang程序panic时一般都会有panic信息打印的, 可惜的是，这个程序自古就有莫名panic的历史，没人解决就直接搞了个脚本自动重启。那个脚本把panic信息都给冲掉了。于是从新改脚本，继续跑，到了第二周终于发现是因为map竞争读写导致的panic。 不过大眼一看出现panic的位置那个map，用了读写锁，且只有一个地方读一个地方写，锁加的挺好的。 没办法只能读代码逻辑了。&#xA;仔细看了看逻辑。这个map原来是引用其他的map，然后被引用的map完全自由写入。 相当于一个map读的时候有锁，写的时候完全无锁。&#xA;复现代码如下：&#xA;// 定义一个目标map。且外部访问都是访问的该目标map type targetMap struct { M map[int]map[string][]string sync.RWMutex } var targetMapInfo = targetMap{M: make(map[int]map[string][]string)} // 定义一个全局变量的源map，赋值会赋给这个map，然后将有值的M直接赋给目标map的M type sourceMap struct { M map[int]map[string][]string sync.RWMutex } var sourceMapInfo = sourceMap{M: make(map[int]map[string][]string)} func main() { go write() go read() time.Sleep(time.Second * 60) } func read() { for i := 0; i &amp;lt; 10000; i++ { // 目标map读取时加读锁 targetMapInfo.RLock() _, ok := targetMapInfo.M[i] if !ok { fmt.</description>
+    </item>
+  </channel>
+</rss>

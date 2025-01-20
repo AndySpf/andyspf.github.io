@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>(二)etcd记录-Put&amp;Watch的联系 | My New Hugo Site</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+    <meta name="description" content="etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。
+这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：
+Put操作 整个put操作的流水线涉及了EtcdServer,raftNode,node,rawNode四个对象之间的通信，其中大量使用了管道通信，先按照我的理解大概画出通信流程帮助记忆，因为整个流程还是比较长的。 接下来跟着源代码走一遍这个流程：
+从grpc server注册处可以看到，put的入口是kvServer的Put方法，该方法中其实就是调用了etcdServer.Put进行业务处理的,
+func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) { ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now()) resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r}) // InternalRaftRequest是可以通过raft发送的所有请求的集合，这里把put的请求放进去，为raft的一致性同步过程做准备。 if err != nil { return nil, err } return resp.(*pb.PutResponse), nil } raftRequest方法展开后可以到达processInternalRaftRequestOnce方法，该方法就是实际处理一次raft操作的地方。
+func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) { ... ch := s.w.Register(id) // 用id注册一个管道，当用相同id调用wait.Trigger方法时，响应结果会从管道中流出。id是生成器(idutil.Generator)生成的请求id cctx, cancel := context.WithTimeout(ctx, s.Cfg.ReqTimeout()) defer cancel() start := time.">
+    <meta name="generator" content="Hugo 0.133.0">
+    
+    
+    
+    
+      <meta name="robots" content="noindex, nofollow">
+    
+    
+      <meta name="author" content = "spf">
+    
+
+    
+<link rel="stylesheet" href="/ananke/css/main.min.css" >
+
+
+
+    
+
+    
+      
+
+    
+
+    
+
+    
+      <link rel="canonical" href="https://example.org/posts/etcd_2/">
+    
+
+    <meta property="og:url" content="https://example.org/posts/etcd_2/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="(二)etcd记录-Put&Watch的联系">
+  <meta property="og:description" content="etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。
+这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：
+Put操作 整个put操作的流水线涉及了EtcdServer,raftNode,node,rawNode四个对象之间的通信，其中大量使用了管道通信，先按照我的理解大概画出通信流程帮助记忆，因为整个流程还是比较长的。 接下来跟着源代码走一遍这个流程：
+从grpc server注册处可以看到，put的入口是kvServer的Put方法，该方法中其实就是调用了etcdServer.Put进行业务处理的,
+func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) { ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now()) resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r}) // InternalRaftRequest是可以通过raft发送的所有请求的集合，这里把put的请求放进去，为raft的一致性同步过程做准备。 if err != nil { return nil, err } return resp.(*pb.PutResponse), nil } raftRequest方法展开后可以到达processInternalRaftRequestOnce方法，该方法就是实际处理一次raft操作的地方。
+func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) { ... ch := s.w.Register(id) // 用id注册一个管道，当用相同id调用wait.Trigger方法时，响应结果会从管道中流出。id是生成器(idutil.Generator)生成的请求id cctx, cancel := context.WithTimeout(ctx, s.Cfg.ReqTimeout()) defer cancel() start := time.">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2021-04-18T00:00:00+00:00">
+    <meta property="article:modified_time" content="2021-04-18T00:00:00+00:00">
+    <meta property="article:tag" content="Etcd">
+    <meta property="article:tag" content="源码">
+
+  <meta itemprop="name" content="(二)etcd记录-Put&Watch的联系">
+  <meta itemprop="description" content="etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。
+这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：
+Put操作 整个put操作的流水线涉及了EtcdServer,raftNode,node,rawNode四个对象之间的通信，其中大量使用了管道通信，先按照我的理解大概画出通信流程帮助记忆，因为整个流程还是比较长的。 接下来跟着源代码走一遍这个流程：
+从grpc server注册处可以看到，put的入口是kvServer的Put方法，该方法中其实就是调用了etcdServer.Put进行业务处理的,
+func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) { ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now()) resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r}) // InternalRaftRequest是可以通过raft发送的所有请求的集合，这里把put的请求放进去，为raft的一致性同步过程做准备。 if err != nil { return nil, err } return resp.(*pb.PutResponse), nil } raftRequest方法展开后可以到达processInternalRaftRequestOnce方法，该方法就是实际处理一次raft操作的地方。
+func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) { ... ch := s.w.Register(id) // 用id注册一个管道，当用相同id调用wait.Trigger方法时，响应结果会从管道中流出。id是生成器(idutil.Generator)生成的请求id cctx, cancel := context.WithTimeout(ctx, s.Cfg.ReqTimeout()) defer cancel() start := time.">
+  <meta itemprop="datePublished" content="2021-04-18T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2021-04-18T00:00:00+00:00">
+  <meta itemprop="wordCount" content="2073">
+  <meta itemprop="keywords" content="Etcd,源码">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="(二)etcd记录-Put&Watch的联系">
+  <meta name="twitter:description" content="etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。 那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。
+这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：
+Put操作 整个put操作的流水线涉及了EtcdServer,raftNode,node,rawNode四个对象之间的通信，其中大量使用了管道通信，先按照我的理解大概画出通信流程帮助记忆，因为整个流程还是比较长的。 接下来跟着源代码走一遍这个流程：
+从grpc server注册处可以看到，put的入口是kvServer的Put方法，该方法中其实就是调用了etcdServer.Put进行业务处理的,
+func (s *EtcdServer) Put(ctx context.Context, r *pb.PutRequest) (*pb.PutResponse, error) { ctx = context.WithValue(ctx, traceutil.StartTimeKey, time.Now()) resp, err := s.raftRequest(ctx, pb.InternalRaftRequest{Put: r}) // InternalRaftRequest是可以通过raft发送的所有请求的集合，这里把put的请求放进去，为raft的一致性同步过程做准备。 if err != nil { return nil, err } return resp.(*pb.PutResponse), nil } raftRequest方法展开后可以到达processInternalRaftRequestOnce方法，该方法就是实际处理一次raft操作的地方。
+func (s *EtcdServer) processInternalRaftRequestOnce(ctx context.Context, r pb.InternalRaftRequest) (*applyResult, error) { ... ch := s.w.Register(id) // 用id注册一个管道，当用相同id调用wait.Trigger方法时，响应结果会从管道中流出。id是生成器(idutil.Generator)生成的请求id cctx, cancel := context.WithTimeout(ctx, s.Cfg.ReqTimeout()) defer cancel() start := time.">
+
+	
+  </head>
+
+  <body class="ma0 avenir bg-near-white">
+
+    
+   
+  
+
+  <header>
+    <div class="bg-black">
+      <nav class="pv3 ph3 ph4-ns" role="navigation">
+  <div class="flex-l justify-between items-center center">
+    <a href="/" class="f3 fw2 hover-white no-underline white-90 dib">
+      
+        My New Hugo Site
+      
+    </a>
+    <div class="flex-l items-center">
+      
+
+      
+      
+<div class="ananke-socials">
+  
+</div>
+
+    </div>
+  </div>
+</nav>
+
+    </div>
+  </header>
+
+
+
+    <main class="pb7" role="main">
+      
+  
+  <article class="flex-l flex-wrap justify-between mw8 center ph3">
+    <header class="mt4 w-100">
+      <aside class="instapaper_ignoref b helvetica tracked ttu">
+          
+        Posts
+      </aside>
+      
+
+
+
+
+
+
+
+
+
+
+  <div id="sharing" class="mt3 ananke-socials">
+    
+  </div>
+
+
+      <h1 class="f1 athelas mt3 mb1">(二)etcd记录-Put&amp;Watch的联系</h1>
+      
+      <p class="tracked">
+        By <strong>spf</strong>
+      </p>
+      
+      
+      
+      <time class="f6 mv4 dib tracked" datetime="2021-04-18T00:00:00Z">April 18, 2021</time>
+      
+
+      
+      
+    </header>
+    <div class="nested-copy-line-height lh-copy serif f4 nested-links mid-gray pr4-l w-two-thirds-l"><p>etcd支持watch功能，即监听一个或者一部分范围内的key，当这些key有变化时，收到通知。
+那么仔细看一下put和watch都分别干了什么，这两个操作又是如何关联在一起的。<br>
+这里暂时先忽略掉raft复制、选举等过程，只仔细看下put是如何与watch交互的部分：</p>
+<h1 id="put操作">Put操作</h1>
+<p>整个put操作的流水线涉及了EtcdServer,raftNode,node,rawNode四个对象之间的通信，其中大量使用了管道通信，先按照我的理解大概画出通信流程帮助记忆，因为整个流程还是比较长的。
+<img src="http://134.175.68.57/images/etcd_put.png" alt="put流程">
+接下来跟着源代码走一遍这个流程：</p>
+<p>从grpc server注册处可以看到，put的入口是kvServer的Put方法，该方法中其实就是调用了etcdServer.Put进行业务处理的,</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">EtcdServer</span>) <span style="color:#a6e22e">Put</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">PutRequest</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">PutResponse</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ctx</span> = <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">WithValue</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">traceutil</span>.<span style="color:#a6e22e">StartTimeKey</span>, <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Now</span>())
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">raftRequest</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">InternalRaftRequest</span>{<span style="color:#a6e22e">Put</span>: <span style="color:#a6e22e">r</span>})  <span style="color:#75715e">// InternalRaftRequest是可以通过raft发送的所有请求的集合，这里把put的请求放进去，为raft的一致性同步过程做准备。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">resp</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">PutResponse</span>), <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>raftRequest方法展开后可以到达processInternalRaftRequestOnce方法，该方法就是实际处理一次raft操作的地方。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">EtcdServer</span>) <span style="color:#a6e22e">processInternalRaftRequestOnce</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">r</span> <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">InternalRaftRequest</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">applyResult</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">...</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ch</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Register</span>(<span style="color:#a6e22e">id</span>)   <span style="color:#75715e">// 用id注册一个管道，当用相同id调用wait.Trigger方法时，响应结果会从管道中流出。id是生成器(idutil.Generator)生成的请求id 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">cctx</span>, <span style="color:#a6e22e">cancel</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">WithTimeout</span>(<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Cfg</span>.<span style="color:#a6e22e">ReqTimeout</span>())
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">cancel</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">start</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">Now</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">Propose</span>(<span style="color:#a6e22e">cctx</span>, <span style="color:#a6e22e">data</span>)   <span style="color:#75715e">// 提交数据到raft节点日志中。可以看出这里面一定做了些什么操作，最终将数据落地并触发wait.Tripper得到响应结果。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">proposalsFailed</span>.<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Trigger</span>(<span style="color:#a6e22e">id</span>, <span style="color:#66d9ef">nil</span>) <span style="color:#75715e">// GC wait
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">x</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ch</span>:                 <span style="color:#75715e">// 阻塞等待结果
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">x</span>.(<span style="color:#f92672">*</span><span style="color:#a6e22e">applyResult</span>), <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">cctx</span>.<span style="color:#a6e22e">Done</span>():
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">proposalsFailed</span>.<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Trigger</span>(<span style="color:#a6e22e">id</span>, <span style="color:#66d9ef">nil</span>) <span style="color:#75715e">// GC wait
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">parseProposeCtxErr</span>(<span style="color:#a6e22e">cctx</span>.<span style="color:#a6e22e">Err</span>(), <span style="color:#a6e22e">start</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">done</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">ErrStopped</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>那么要在raftNode.Propose方法里找一下是如何触发wait.Trigger方法的了。因为raftNode结构中包含匿名结构node，因此最终实现Propose的其实是node，展开Propose后：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">n</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">node</span>) <span style="color:#a6e22e">stepWithWaitOption</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">m</span> <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">Message</span>, <span style="color:#a6e22e">wait</span> <span style="color:#66d9ef">bool</span>) <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">Type</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">MsgProp</span> {  <span style="color:#75715e">// 首先对消息类型进行判断，如果不是MsgProp类型则直接扔进node.recvc即可。当然put操作的确是MsgProp类型
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">recvc</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">m</span>:      
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Done</span>():
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Err</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">done</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ErrStopped</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ch</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">propc</span>              <span style="color:#75715e">// 如果是MsgProp类型消息，则使用node.propc管道
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">pm</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">msgWithResult</span>{<span style="color:#a6e22e">m</span>: <span style="color:#a6e22e">m</span>} 
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">wait</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">pm</span>.<span style="color:#a6e22e">result</span> = make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">error</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">ch</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">pm</span>:         <span style="color:#75715e">// 先将数据扔进管道，然后判断是否等待。不等待的话则扔进去即可返回
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">wait</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Done</span>():
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Err</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">done</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ErrStopped</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">pm</span>.<span style="color:#a6e22e">result</span>:  <span style="color:#75715e">// 如果是等待（put操作就要求等待），则在此处等待扔进propc后是否有错误产生，如果有错误，则Propose就可以直接返回掉了
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Done</span>():
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ctx</span>.<span style="color:#a6e22e">Err</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">done</span>:
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">ErrStopped</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>可以看到node.propc是在node.run中使用for+select循环等待的，大概过一下node.run的流程：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// 创建etcdServer时会启动新建node，并启动node.run方法。同时将其加入etcdServer.r结构中的匿名字段里。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// put操作对于run方法会按顺序会下面的几步
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 1. propc会受到消息，执行raft协议中的操作。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 2. 执行完后会产生准备好的消息，此时将readyc赋值
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 3. readyc可以扔进去消息，等待消费者取走这个消息
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// 对照着源代码看一下：
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">n</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">node</span>) <span style="color:#a6e22e">run</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">propc</span> <span style="color:#66d9ef">chan</span> <span style="color:#a6e22e">msgWithResult</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">readyc</span> <span style="color:#66d9ef">chan</span> <span style="color:#a6e22e">Ready</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">advancec</span> <span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">rd</span> <span style="color:#a6e22e">Ready</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">r</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">rn</span>.<span style="color:#a6e22e">raft</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">lead</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">None</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">advancec</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">readyc</span> = <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">rn</span>.<span style="color:#a6e22e">HasReady</span>() {  <span style="color:#75715e">// 判断是否有消息准备好，会根据很多种维度进行判断
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">rd</span> = <span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">rn</span>.<span style="color:#a6e22e">readyWithoutAccept</span>()   <span style="color:#75715e">// 如果有消息准备好，则rd和readyc都会被赋值。以便select中的chan操作可以进行。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">readyc</span> = <span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">readyc</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">pm</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">propc</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">m</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">pm</span>.<span style="color:#a6e22e">m</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">m</span>.<span style="color:#a6e22e">From</span> = <span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">id</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">Step</span>(<span style="color:#a6e22e">m</span>)   <span style="color:#75715e">// 执行raft协议中的操作，会根据当前在节点中角色的不同执行不同的操作。 以单机leader身份来看，执行完之后r.raftLog.commmit会改变，这会导致n.rn.HasReady()为true
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">pm</span>.<span style="color:#a6e22e">result</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">pm</span>.<span style="color:#a6e22e">result</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>				close(<span style="color:#a6e22e">pm</span>.<span style="color:#a6e22e">result</span>)
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">......</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">tickc</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">rn</span>.<span style="color:#a6e22e">Tick</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">readyc</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">rd</span>:   <span style="color:#75715e">// 由HasReady后的逻辑得知readyc=n.readyc，而n.readyc又是一个无缓冲管道。因此要等待消费者取走，否则一直在此阻塞
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">rn</span>.<span style="color:#a6e22e">acceptReady</span>(<span style="color:#a6e22e">rd</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">advancec</span> = <span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">advancec</span>   <span style="color:#75715e">// 将advancec置为n.advancec，以便其他地方状态保存完成后可以通知回来。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">advancec</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">rn</span>.<span style="color:#a6e22e">Advance</span>(<span style="color:#a6e22e">rd</span>)  <span style="color:#75715e">//RawNode.Advance方法就是通知下现在已经保存状态成功了，可以进行下一次变更了。同时也会更新旧状态，以便下次有变更时做对比，为判断HasReady等提供依据。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">rd</span> = <span style="color:#a6e22e">Ready</span>{}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">advancec</span> = <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">status</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">c</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">getStatus</span>(<span style="color:#a6e22e">r</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">stop</span>:
+</span></span><span style="display:flex;"><span>			close(<span style="color:#a6e22e">n</span>.<span style="color:#a6e22e">done</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>经过代码里翻查，readyc是raftNode.start方法在进行消费。先看下raftNode.start中和这个流程关系紧密的部分代码：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// start方法是在etcdServer.run时启动的，比node.run方法启动的更晚
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">r</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">raftNode</span>) <span style="color:#a6e22e">start</span>(<span style="color:#a6e22e">rh</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">raftReadyHandler</span>) {
+</span></span><span style="display:flex;"><span><span style="color:#f92672">...</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">for</span>{
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">ticker</span>.<span style="color:#a6e22e">C</span>:
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">tick</span>()
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">rd</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">Ready</span>():
+</span></span><span style="display:flex;"><span>				<span style="color:#f92672">......</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">notifyc</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">ap</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">apply</span>{
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">entries</span>:  <span style="color:#a6e22e">rd</span>.<span style="color:#a6e22e">CommittedEntries</span>,
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">snapshot</span>: <span style="color:#a6e22e">rd</span>.<span style="color:#a6e22e">Snapshot</span>,
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">notifyc</span>:  <span style="color:#a6e22e">notifyc</span>,
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">updateCommittedIndex</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">ap</span>, <span style="color:#a6e22e">rh</span>)
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">applyc</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ap</span>:  <span style="color:#75715e">// 收到readyc管道的数据后，构造一个ap结构，用来发送给applyc，并且该applyc也是无缓冲管道，因此会在该方法中阻塞
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">stopped</span>:
+</span></span><span style="display:flex;"><span>					<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#f92672">......</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">Advance</span>()    <span style="color:#75715e">// 这里会往r.Node.advancec中写入数据，以通知node.run()方法，select里的n.advancec收到信号后会进行状态保存完成的收尾工作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">stopped</span>:
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>此时再去寻找applyc的消费者&ndash;EtcdServer.run方法，可以看到在启动raftNode.run后启动了一个for+select循环，等待消息。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#f92672">......</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">ap</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">apply</span>():
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">f</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">func</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>) { <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">applyAll</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">ep</span>, <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">ap</span>) }
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">sched</span>.<span style="color:#a6e22e">Schedule</span>(<span style="color:#a6e22e">f</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#f92672">......</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span></code></pre></div><p>那么继续展开applyAll方法，目前为止我们还么找到开头和Register对应的Trigger方法究竟在哪里调用的，之后的调用顺序就很明确了: <br>
+applyAll-&gt;applyEntries-&gt;apply-&gt;applyEntryNormal，大概看一下applyEntryNormal函数是如何结束这次put流程的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// applyEntryNormal apples an EntryNormal type raftpb request to the EtcdServer
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">EtcdServer</span>) <span style="color:#a6e22e">applyEntryNormal</span>(<span style="color:#a6e22e">e</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">raftpb</span>.<span style="color:#a6e22e">Entry</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#f92672">......</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">raftReq</span> <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">InternalRaftRequest</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">pbutil</span>.<span style="color:#a6e22e">MaybeUnmarshal</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">raftReq</span>, <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">Data</span>) { <span style="color:#75715e">// 从这里到“do not re-apply applied entries”都是对V2版本做的兼容
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">r</span> <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">Request</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">rp</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">r</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">pbutil</span>.<span style="color:#a6e22e">MustUnmarshal</span>(<span style="color:#a6e22e">rp</span>, <span style="color:#a6e22e">e</span>.<span style="color:#a6e22e">Data</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Trigger</span>(<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">ID</span>, <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">applyV2Request</span>((<span style="color:#f92672">*</span><span style="color:#a6e22e">RequestV2</span>)(<span style="color:#a6e22e">rp</span>)))
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">raftReq</span>.<span style="color:#a6e22e">V2</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">req</span> <span style="color:#f92672">:=</span> (<span style="color:#f92672">*</span><span style="color:#a6e22e">RequestV2</span>)(<span style="color:#a6e22e">raftReq</span>.<span style="color:#a6e22e">V2</span>)
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Trigger</span>(<span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">ID</span>, <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">applyV2Request</span>(<span style="color:#a6e22e">req</span>))
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// do not re-apply applied entries.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">shouldApplyV3</span> {   
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">id</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">raftReq</span>.<span style="color:#a6e22e">ID</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">id</span> = <span style="color:#a6e22e">raftReq</span>.<span style="color:#a6e22e">Header</span>.<span style="color:#a6e22e">ID</span>  <span style="color:#75715e">// v3版本从这里取id
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">ar</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">applyResult</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">needResult</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">IsRegistered</span>(<span style="color:#a6e22e">id</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">needResult</span> <span style="color:#f92672">||</span> !<span style="color:#a6e22e">noSideEffect</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">raftReq</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">needResult</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">raftReq</span>.<span style="color:#a6e22e">Txn</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">removeNeedlessRangeReqs</span>(<span style="color:#a6e22e">raftReq</span>.<span style="color:#a6e22e">Txn</span>)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">ar</span> = <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">applyV3</span>.<span style="color:#a6e22e">Apply</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">raftReq</span>)   <span style="color:#75715e">// 调用v3版本的Apply，这里会通过authApplierV3.Apply()后到达applierV3backend.Apply()进行索引的设置和kv落地存储
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ar</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {   <span style="color:#75715e">// 如果ar是空的，则直接返回，processInternalRaftRequestOnce通过超时结束
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ar</span>.<span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">ErrNoSpace</span> <span style="color:#f92672">||</span> len(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">alarmStore</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">AlarmType_NOSPACE</span>)) &gt; <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Trigger</span>(<span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">ar</span>)    <span style="color:#75715e">// 调用Trigger，将结果从Register方法返回的管道中出去
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 如果是因为空间超过设置的配额引起的错误，则告警，告警后再触发Trigger
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">lg</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Logger</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Warn</span>(
+</span></span><span style="display:flex;"><span>		<span style="color:#e6db74">&#34;message exceeded backend quota; raising alarm&#34;</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Int64</span>(<span style="color:#e6db74">&#34;quota-size-bytes&#34;</span>, <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Cfg</span>.<span style="color:#a6e22e">QuotaBackendBytes</span>),
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">String</span>(<span style="color:#e6db74">&#34;quota-size&#34;</span>, <span style="color:#a6e22e">humanize</span>.<span style="color:#a6e22e">Bytes</span>(uint64(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Cfg</span>.<span style="color:#a6e22e">QuotaBackendBytes</span>))),
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">ar</span>.<span style="color:#a6e22e">err</span>),
+</span></span><span style="display:flex;"><span>	)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">GoAttach</span>(<span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">a</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">AlarmRequest</span>{
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">MemberID</span>: uint64(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">ID</span>()),
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">Action</span>:   <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">AlarmRequest_ACTIVATE</span>,
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">Alarm</span>:    <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">AlarmType_NOSPACE</span>,
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">raftRequest</span>(<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">ctx</span>, <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">InternalRaftRequest</span>{<span style="color:#a6e22e">Alarm</span>: <span style="color:#a6e22e">a</span>})
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">Trigger</span>(<span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">ar</span>)
+</span></span><span style="display:flex;"><span>	})
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>put流程现在形成了闭环。接下来就需要看一下v3版本的Apply中到底干了些什么，展开Apply方法后是一个switch，根据参数不同执行不同的逻辑。我们关注put，那么就看一下其Put方法，忽略掉auth和quotas验证的步骤直接看下applierV3backend的Put方法:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">a</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">applierV3backend</span>) <span style="color:#a6e22e">Put</span>(<span style="color:#a6e22e">ctx</span> <span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">Context</span>, <span style="color:#a6e22e">txn</span> <span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">TxnWrite</span>, <span style="color:#a6e22e">p</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">PutRequest</span>) (<span style="color:#a6e22e">resp</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">PutResponse</span>, <span style="color:#a6e22e">trace</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">traceutil</span>.<span style="color:#a6e22e">Trace</span>, <span style="color:#a6e22e">err</span> <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">resp</span> = <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">PutResponse</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">Header</span> = <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">ResponseHeader</span>{}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">trace</span> = <span style="color:#a6e22e">traceutil</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">ctx</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// create put tracing if the trace in context is empty
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">trace</span>.<span style="color:#a6e22e">IsEmpty</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">trace</span> = <span style="color:#a6e22e">traceutil</span>.<span style="color:#a6e22e">New</span>(<span style="color:#e6db74">&#34;put&#34;</span>,
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">Logger</span>(),
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">traceutil</span>.<span style="color:#a6e22e">Field</span>{<span style="color:#a6e22e">Key</span>: <span style="color:#e6db74">&#34;key&#34;</span>, <span style="color:#a6e22e">Value</span>: string(<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">Key</span>)},
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">traceutil</span>.<span style="color:#a6e22e">Field</span>{<span style="color:#a6e22e">Key</span>: <span style="color:#e6db74">&#34;req_size&#34;</span>, <span style="color:#a6e22e">Value</span>: <span style="color:#a6e22e">proto</span>.<span style="color:#a6e22e">Size</span>(<span style="color:#a6e22e">p</span>)},
+</span></span><span style="display:flex;"><span>		)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">val</span>, <span style="color:#a6e22e">leaseID</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">Value</span>, <span style="color:#a6e22e">lease</span>.<span style="color:#a6e22e">LeaseID</span>(<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">Lease</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">txn</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {  <span style="color:#75715e">// 写操作使用事务，如果入参的事务为nil，则使用默认的事务
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">leaseID</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">lease</span>.<span style="color:#a6e22e">NoLease</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">l</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">lessor</span>.<span style="color:#a6e22e">Lookup</span>(<span style="color:#a6e22e">leaseID</span>); <span style="color:#a6e22e">l</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">lease</span>.<span style="color:#a6e22e">ErrLeaseNotFound</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">txn</span> = <span style="color:#a6e22e">a</span>.<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">KV</span>().<span style="color:#a6e22e">Write</span>(<span style="color:#a6e22e">trace</span>)   <span style="color:#75715e">// 默认的事务s.KV()是创建etcdServer时赋值的。其为watchableStore的指针，然后他的Write方法会返回一个TxnWrite接口类型数据(metricsTxnWrite)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">defer</span> <span style="color:#a6e22e">txn</span>.<span style="color:#a6e22e">End</span>()   <span style="color:#75715e">// put写入数据库后的收尾工作
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">rr</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">RangeResult</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">IgnoreValue</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">IgnoreLease</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">PrevKv</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">trace</span>.<span style="color:#a6e22e">StepWithFunction</span>(<span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">rr</span>, <span style="color:#a6e22e">err</span> = <span style="color:#a6e22e">txn</span>.<span style="color:#a6e22e">Range</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">TODO</span>(), <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">Key</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">RangeOptions</span>{})
+</span></span><span style="display:flex;"><span>		}, <span style="color:#e6db74">&#34;get previous kv pair&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">IgnoreValue</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">IgnoreLease</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">rr</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> <span style="color:#f92672">||</span> len(<span style="color:#a6e22e">rr</span>.<span style="color:#a6e22e">KVs</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// ignore_{lease,value} flag expects previous key-value pair
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">ErrKeyNotFound</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">IgnoreValue</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">val</span> = <span style="color:#a6e22e">rr</span>.<span style="color:#a6e22e">KVs</span>[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">Value</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">IgnoreLease</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">leaseID</span> = <span style="color:#a6e22e">lease</span>.<span style="color:#a6e22e">LeaseID</span>(<span style="color:#a6e22e">rr</span>.<span style="color:#a6e22e">KVs</span>[<span style="color:#ae81ff">0</span>].<span style="color:#a6e22e">Lease</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">PrevKv</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">rr</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> <span style="color:#f92672">&amp;&amp;</span> len(<span style="color:#a6e22e">rr</span>.<span style="color:#a6e22e">KVs</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">PrevKv</span> = <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">rr</span>.<span style="color:#a6e22e">KVs</span>[<span style="color:#ae81ff">0</span>]
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 调用metricsTxnWrite以及storeTxnWrite的Put等方法后转移到存储层，开始数据落地以及索引的更改，etcd的索引使用的是btree(treeIndex实现了对索引的控制)
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">Header</span>.<span style="color:#a6e22e">Revision</span> = <span style="color:#a6e22e">txn</span>.<span style="color:#a6e22e">Put</span>(<span style="color:#a6e22e">p</span>.<span style="color:#a6e22e">Key</span>, <span style="color:#a6e22e">val</span>, <span style="color:#a6e22e">leaseID</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">trace</span>.<span style="color:#a6e22e">AddField</span>(<span style="color:#a6e22e">traceutil</span>.<span style="color:#a6e22e">Field</span>{<span style="color:#a6e22e">Key</span>: <span style="color:#e6db74">&#34;response_revision&#34;</span>, <span style="color:#a6e22e">Value</span>: <span style="color:#a6e22e">resp</span>.<span style="color:#a6e22e">Header</span>.<span style="color:#a6e22e">Revision</span>})
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">resp</span>, <span style="color:#a6e22e">trace</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>调用metricsTxnWrite以及storeTxnWrite的Put等方法后转移到存储层，开始数据落地以及索引的更改，etcd的落地存储使用的是kv数据库bblot，索引使用的是btree(treeIndex实现了对索引的控制)</p>
+<p>看下storeTxnWrite的put方法实现：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">tw</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">storeTxnWrite</span>) <span style="color:#a6e22e">put</span>(<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">value</span> []<span style="color:#66d9ef">byte</span>, <span style="color:#a6e22e">leaseID</span> <span style="color:#a6e22e">lease</span>.<span style="color:#a6e22e">LeaseID</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">rev</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">beginRev</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">rev</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">oldLease</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">lease</span>.<span style="color:#a6e22e">NoLease</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// if the key exists before, use its previous created and
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// get its previous leaseID
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">created</span>, <span style="color:#a6e22e">ver</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">kvindex</span>.<span style="color:#a6e22e">Get</span>(<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">rev</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">c</span> = <span style="color:#a6e22e">created</span>.<span style="color:#a6e22e">main</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">oldLease</span> = <span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">le</span>.<span style="color:#a6e22e">GetLease</span>(<span style="color:#a6e22e">lease</span>.<span style="color:#a6e22e">LeaseItem</span>{<span style="color:#a6e22e">Key</span>: string(<span style="color:#a6e22e">key</span>)})
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">trace</span>.<span style="color:#a6e22e">Step</span>(<span style="color:#e6db74">&#34;get key&#39;s previous created_revision and leaseID&#34;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ibytes</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">newRevBytes</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">idxRev</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">revision</span>{<span style="color:#a6e22e">main</span>: <span style="color:#a6e22e">rev</span>, <span style="color:#a6e22e">sub</span>: int64(len(<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">changes</span>))}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">revToBytes</span>(<span style="color:#a6e22e">idxRev</span>, <span style="color:#a6e22e">ibytes</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ver</span> = <span style="color:#a6e22e">ver</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">kv</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">mvccpb</span>.<span style="color:#a6e22e">KeyValue</span>{
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">Key</span>:            <span style="color:#a6e22e">key</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">Value</span>:          <span style="color:#a6e22e">value</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">CreateRevision</span>: <span style="color:#a6e22e">c</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">ModRevision</span>:    <span style="color:#a6e22e">rev</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">Version</span>:        <span style="color:#a6e22e">ver</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">Lease</span>:          int64(<span style="color:#a6e22e">leaseID</span>),
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">d</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">kv</span>.<span style="color:#a6e22e">Marshal</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">storeTxnRead</span>.<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Fatal</span>(
+</span></span><span style="display:flex;"><span>			<span style="color:#e6db74">&#34;failed to marshal mvccpb.KeyValue&#34;</span>,
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">err</span>),
+</span></span><span style="display:flex;"><span>		)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">trace</span>.<span style="color:#a6e22e">Step</span>(<span style="color:#e6db74">&#34;marshal mvccpb.KeyValue&#34;</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">tx</span>.<span style="color:#a6e22e">UnsafeSeqPut</span>(<span style="color:#a6e22e">keyBucketName</span>, <span style="color:#a6e22e">ibytes</span>, <span style="color:#a6e22e">d</span>)  <span style="color:#75715e">// 使用bblot对这次的key，value进行落地
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">kvindex</span>.<span style="color:#a6e22e">Put</span>(<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">idxRev</span>)  <span style="color:#75715e">// 索引的变更
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">changes</span> = append(<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">changes</span>, <span style="color:#a6e22e">kv</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">tw</span>.<span style="color:#a6e22e">trace</span>.<span style="color:#a6e22e">Step</span>(<span style="color:#e6db74">&#34;store kv pair into bolt db&#34;</span>)
+</span></span><span style="display:flex;"><span>    <span style="color:#e6db74">``````</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>到此put的业务层代码已经结束，再往下就是btree以及bbolt的api调用了。但是目前为止还没看到如何与watch挂上勾的。那么盲猜只能是在put操作的收尾清理阶段了。即applierV3backend的Put方法中的txn.End()一定有和watch相关联的东西。
+实现End接口的结构有很多个，一路找到watchableStoreTxnWrite的End()方法，在其中有notify()方法：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#75715e">// notify notifies the fact that given event at the given rev just happened to
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">// watchers that watch on the key of the event.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">watchableStore</span>) <span style="color:#a6e22e">notify</span>(<span style="color:#a6e22e">rev</span> <span style="color:#66d9ef">int64</span>, <span style="color:#a6e22e">evs</span> []<span style="color:#a6e22e">mvccpb</span>.<span style="color:#a6e22e">Event</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">victim</span> <span style="color:#a6e22e">watcherBatch</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// s.synced是已同步的所有watcher，而evs则是发生改变的事件集合。newWatcherBatch拿到这两个参数后就可以按照k进行匹配，符合某个watcher声明的key的话，则把事件给他。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">w</span>, <span style="color:#a6e22e">eb</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">newWatcherBatch</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">synced</span>, <span style="color:#a6e22e">evs</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">eb</span>.<span style="color:#a6e22e">revs</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">1</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Panic</span>(
+</span></span><span style="display:flex;"><span>				<span style="color:#e6db74">&#34;unexpected multiple revisions in watch notification&#34;</span>,
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Int</span>(<span style="color:#e6db74">&#34;number-of-revisions&#34;</span>, <span style="color:#a6e22e">eb</span>.<span style="color:#a6e22e">revs</span>),
+</span></span><span style="display:flex;"><span>			)
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// send()会按照创建watcher时声明的过滤规则进行一次过滤，并将过滤后的内容放到管道watcher.ch中。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">WatchResponse</span>{<span style="color:#a6e22e">WatchID</span>: <span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">Events</span>: <span style="color:#a6e22e">eb</span>.<span style="color:#a6e22e">evs</span>, <span style="color:#a6e22e">Revision</span>: <span style="color:#a6e22e">rev</span>}) {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">pendingEventsGauge</span>.<span style="color:#a6e22e">Add</span>(float64(len(<span style="color:#a6e22e">eb</span>.<span style="color:#a6e22e">evs</span>)))
+</span></span><span style="display:flex;"><span>		} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// move slow watcher to victims
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">minRev</span> = <span style="color:#a6e22e">rev</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">victim</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">victim</span> = make(<span style="color:#a6e22e">watcherBatch</span>)
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">w</span>.<span style="color:#a6e22e">victim</span> = <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">victim</span>[<span style="color:#a6e22e">w</span>] = <span style="color:#a6e22e">eb</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">synced</span>.delete(<span style="color:#a6e22e">w</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">slowWatcherGauge</span>.<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">addVictim</span>(<span style="color:#a6e22e">victim</span>)
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>至此，put操作终于和watcher扯上关系了，并且可以清楚的看到最终的变化是通过缓冲管道扔出去了。那么接下来就要分析下watch是如何工作的了。</p>
+<h1 id="watch操作">watch操作</h1>
+<p>依然从grpc server注册处查得watch的入口为watchServer.Watch方法。因为watch是通过双向流grpc实现的，因此这里选择启动两个goroutine，分别用来发送消息到客户端以及接收客户端发过来的命令。</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">ws</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">watchServer</span>) <span style="color:#a6e22e">Watch</span>(<span style="color:#a6e22e">stream</span> <span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">Watch_WatchServer</span>) (<span style="color:#a6e22e">err</span> <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">sws</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">serverWatchStream</span>{
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">lg</span>: <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">lg</span>,
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">clusterID</span>: <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">clusterID</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">memberID</span>:  <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">memberID</span>,
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">maxRequestBytes</span>: <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">maxRequestBytes</span>,
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">sg</span>:        <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">sg</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">watchable</span>: <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">watchable</span>,  <span style="color:#75715e">// 即EtcdServer.KV(),在applierV3backend.Put方法中创建默认txn时也是用的此对象
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">ag</span>:        <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">ag</span>,
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">gRPCStream</span>:  <span style="color:#a6e22e">stream</span>,   <span style="color:#75715e">// grpc流
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">watchStream</span>: <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">watchable</span>.<span style="color:#a6e22e">NewWatchStream</span>(), <span style="color:#75715e">// watch监听变更的流，这次主要也是分析该流的走向
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#75715e">// ctrl流用来发送类似创建watch等控制命令的响应
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">ctrlStream</span>: make(<span style="color:#66d9ef">chan</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchResponse</span>, <span style="color:#a6e22e">ctrlStreamBufLen</span>),
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">progress</span>: make(<span style="color:#66d9ef">map</span>[<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>]<span style="color:#66d9ef">bool</span>),
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">prevKV</span>:   make(<span style="color:#66d9ef">map</span>[<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>]<span style="color:#66d9ef">bool</span>),
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fragment</span>: make(<span style="color:#66d9ef">map</span>[<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>]<span style="color:#66d9ef">bool</span>),
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">closec</span>: make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">struct</span>{}),
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">sendLoop</span>()  <span style="color:#75715e">// 负责向客户端发送变化以及连接建立成功等通知
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">wg</span>.<span style="color:#a6e22e">Done</span>()
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">errc</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">error</span>, <span style="color:#ae81ff">1</span>)
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// Ideally recvLoop would also use sws.wg to signal its completion
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// but when stream.Context().Done() is closed, the stream&#39;s recv
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// may continue to block since it uses a different context, leading to
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// deadlock when calling sws.close().
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#75715e">// 比较有迷惑的是这里没有和sendLoop一样使用sws.wg控制，按文档解释是因为，recv和send中是不同的上下文，因此如果这里使用wg控制那么当stream.Context().Done()关闭时，recv可能还在阻塞不能正确返回，从而在sws.close()时陷入死锁。至于stream.Context().Done()关闭时recv为什么不直接返回，仅根据recv中那一段注释暂时没想明白。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// 负责收取客户端发送过来的命令并加以处理
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">rerr</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">recvLoop</span>(); <span style="color:#a6e22e">rerr</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">isClientCtxErr</span>(<span style="color:#a6e22e">stream</span>.<span style="color:#a6e22e">Context</span>().<span style="color:#a6e22e">Err</span>(), <span style="color:#a6e22e">rerr</span>) {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Debug</span>(<span style="color:#e6db74">&#34;failed to receive watch request from gRPC stream&#34;</span>, <span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">rerr</span>))
+</span></span><span style="display:flex;"><span>			} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Warn</span>(<span style="color:#e6db74">&#34;failed to receive watch request from gRPC stream&#34;</span>, <span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">rerr</span>))
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">streamFailures</span>.<span style="color:#a6e22e">WithLabelValues</span>(<span style="color:#e6db74">&#34;receive&#34;</span>, <span style="color:#e6db74">&#34;watch&#34;</span>).<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">errc</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">rerr</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>	<span style="color:#960050;background-color:#1e0010">······</span>
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>如果想创建一个watch连接，请求最先进入的是recv，那么就先从recv出发：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">sws</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">serverWatchStream</span>) <span style="color:#a6e22e">recvLoop</span>() <span style="color:#66d9ef">error</span> {
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">req</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">gRPCStream</span>.<span style="color:#a6e22e">Recv</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">io</span>.<span style="color:#a6e22e">EOF</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">err</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// 根据req的类型走不同的处理逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">switch</span> <span style="color:#a6e22e">uv</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">req</span>.<span style="color:#a6e22e">RequestUnion</span>.(<span style="color:#66d9ef">type</span>) {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchRequest_CreateRequest</span>:  <span style="color:#75715e">// 创建watch
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>            <span style="color:#960050;background-color:#1e0010">······</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// 经过一些列过滤筛选后开始创建的逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">wsrev</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchStream</span>.<span style="color:#a6e22e">Rev</span>() <span style="color:#75715e">// 拿到当前的revision号
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">rev</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">creq</span>.<span style="color:#a6e22e">StartRevision</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">rev</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">rev</span> = <span style="color:#a6e22e">wsrev</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>  <span style="color:#75715e">// 如果没有指定rev，则从下一次改变开始
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// 开启watch逻辑，并返回一个watchid给客户端
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchStream</span>.<span style="color:#a6e22e">Watch</span>(<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>(<span style="color:#a6e22e">creq</span>.<span style="color:#a6e22e">WatchId</span>), <span style="color:#a6e22e">creq</span>.<span style="color:#a6e22e">Key</span>, <span style="color:#a6e22e">creq</span>.<span style="color:#a6e22e">RangeEnd</span>, <span style="color:#a6e22e">rev</span>, <span style="color:#a6e22e">filters</span><span style="color:#f92672">...</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			    <span style="color:#75715e">// 如果Watch成功，那么要根据入参判断这个客户端是否需要进展通知、是否需要返回上一次的kv、是否需要拆分响应 
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">creq</span>.<span style="color:#a6e22e">ProgressNotify</span> {  
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">progress</span>[<span style="color:#a6e22e">id</span>] = <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">creq</span>.<span style="color:#a6e22e">PrevKv</span> {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">prevKV</span>[<span style="color:#a6e22e">id</span>] = <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">creq</span>.<span style="color:#a6e22e">Fragment</span> {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">fragment</span>[<span style="color:#a6e22e">id</span>] = <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">wr</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchResponse</span>{
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">Header</span>:   <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">newResponseHeader</span>(<span style="color:#a6e22e">wsrev</span>),
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">WatchId</span>:  int64(<span style="color:#a6e22e">id</span>),
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">Created</span>:  <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">Canceled</span>: <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span>,
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">wr</span>.<span style="color:#a6e22e">CancelReason</span> = <span style="color:#a6e22e">err</span>.<span style="color:#a6e22e">Error</span>()
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">ctrlStream</span> <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">wr</span>: <span style="color:#75715e">// 先将创建命令的响应通过缓冲管道ctrl返回  
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">closec</span>:
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchRequest_CancelRequest</span>: <span style="color:#75715e">// 在该stream上取消一个观察者
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">uv</span>.<span style="color:#a6e22e">CancelRequest</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">id</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">uv</span>.<span style="color:#a6e22e">CancelRequest</span>.<span style="color:#a6e22e">WatchId</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchStream</span>.<span style="color:#a6e22e">Cancel</span>(<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>(<span style="color:#a6e22e">id</span>))
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">ctrlStream</span> <span style="color:#f92672">&lt;-</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchResponse</span>{
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">Header</span>:   <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">newResponseHeader</span>(<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchStream</span>.<span style="color:#a6e22e">Rev</span>()),
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">WatchId</span>:  <span style="color:#a6e22e">id</span>,
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">Canceled</span>: <span style="color:#66d9ef">true</span>,
+</span></span><span style="display:flex;"><span>					}
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>					delete(<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">progress</span>, <span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>(<span style="color:#a6e22e">id</span>))
+</span></span><span style="display:flex;"><span>					delete(<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">prevKV</span>, <span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>(<span style="color:#a6e22e">id</span>))
+</span></span><span style="display:flex;"><span>					delete(<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">fragment</span>, <span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>(<span style="color:#a6e22e">id</span>))
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchRequest_ProgressRequest</span>: <span style="color:#75715e">// 报告进展（广播）
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">uv</span>.<span style="color:#a6e22e">ProgressRequest</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">ctrlStream</span> <span style="color:#f92672">&lt;-</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchResponse</span>{
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">Header</span>:  <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">newResponseHeader</span>(<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchStream</span>.<span style="color:#a6e22e">Rev</span>()),
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">WatchId</span>: <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#75715e">// response is not associated with any WatchId and will be broadcast to all watch channels
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				}
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">default</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// we probably should not shutdown the entire stream when
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#75715e">// receive an valid command.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#75715e">// so just do nothing instead.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>接着看下watchStream.Watch是如何创建一个watcher的</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">ws</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">watchStream</span>) <span style="color:#a6e22e">Watch</span>(<span style="color:#a6e22e">id</span> <span style="color:#a6e22e">WatchID</span>, <span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">end</span> []<span style="color:#66d9ef">byte</span>, <span style="color:#a6e22e">startRev</span> <span style="color:#66d9ef">int64</span>, <span style="color:#a6e22e">fcs</span> <span style="color:#f92672">...</span><span style="color:#a6e22e">FilterFunc</span>) (<span style="color:#a6e22e">WatchID</span>, <span style="color:#66d9ef">error</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#960050;background-color:#1e0010">······</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 生成一个没有使用过的id
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">id</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">AutoWatchID</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">watchers</span>[<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">nextID</span>] <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">nextID</span><span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">id</span> = <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">nextID</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">nextID</span><span style="color:#f92672">++</span>
+</span></span><span style="display:flex;"><span>	} <span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">watchers</span>[<span style="color:#a6e22e">id</span>]; <span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">return</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">ErrWatcherDuplicateID</span>
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 将watchStream的ch传入，也就是说所有的watcher都共用这一个管道
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">w</span>, <span style="color:#a6e22e">c</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">watchable</span>.<span style="color:#a6e22e">watch</span>(<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">end</span>, <span style="color:#a6e22e">startRev</span>, <span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">ch</span>, <span style="color:#a6e22e">fcs</span><span style="color:#f92672">...</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">cancels</span>[<span style="color:#a6e22e">id</span>] = <span style="color:#a6e22e">c</span>   <span style="color:#75715e">// 加入cancel表中，待执行cancel动作时执行
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">watchers</span>[<span style="color:#a6e22e">id</span>] = <span style="color:#a6e22e">w</span> <span style="color:#75715e">// 将新生成的watcher加入表中
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">id</span>, <span style="color:#66d9ef">nil</span>
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">s</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">watchableStore</span>) <span style="color:#a6e22e">watch</span>(<span style="color:#a6e22e">key</span>, <span style="color:#a6e22e">end</span> []<span style="color:#66d9ef">byte</span>, <span style="color:#a6e22e">startRev</span> <span style="color:#66d9ef">int64</span>, <span style="color:#a6e22e">id</span> <span style="color:#a6e22e">WatchID</span>, <span style="color:#a6e22e">ch</span> <span style="color:#66d9ef">chan</span><span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">WatchResponse</span>, <span style="color:#a6e22e">fcs</span> <span style="color:#f92672">...</span><span style="color:#a6e22e">FilterFunc</span>) (<span style="color:#f92672">*</span><span style="color:#a6e22e">watcher</span>, <span style="color:#a6e22e">cancelFunc</span>) {
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">wa</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">watcher</span>{
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">key</span>:    <span style="color:#a6e22e">key</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">end</span>:    <span style="color:#a6e22e">end</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">minRev</span>: <span style="color:#a6e22e">startRev</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">id</span>:     <span style="color:#a6e22e">id</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">ch</span>:     <span style="color:#a6e22e">ch</span>,
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">fcs</span>:    <span style="color:#a6e22e">fcs</span>,
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">revMu</span>.<span style="color:#a6e22e">RLock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 判断请求中的起始rev是否小于当前rev，如果不为0且小于等于则要先加入unsynced中，将比当前小的所有kv全部返回给观察者后才能加入synced中。
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">synced</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">startRev</span> &gt; <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">currentRev</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">startRev</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">synced</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">wa</span>.<span style="color:#a6e22e">minRev</span> = <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">store</span>.<span style="color:#a6e22e">currentRev</span> <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">startRev</span> &gt; <span style="color:#a6e22e">wa</span>.<span style="color:#a6e22e">minRev</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">wa</span>.<span style="color:#a6e22e">minRev</span> = <span style="color:#a6e22e">startRev</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">synced</span>.<span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">wa</span>) <span style="color:#75715e">// 这里就和Put时的notify对应上了，这里是往synced中加，那里是取。因此add进synced中就意味着该watcher建立成功了  
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">slowWatcherGauge</span>.<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">unsynced</span>.<span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">wa</span>)
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">revMu</span>.<span style="color:#a6e22e">RUnlock</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">watcherGauge</span>.<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">wa</span>, <span style="color:#66d9ef">func</span>() { <span style="color:#a6e22e">s</span>.<span style="color:#a6e22e">cancelWatcher</span>(<span style="color:#a6e22e">wa</span>) }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>recv主要的工作在Create，每一次在该流上收到一个Create请求时都会新建一个watcher并加入到synced中，等待put时从中取出并判断是否发送。
+接下来看一下notify那里的send发送响应后，这边是如何接收并回到客户端的：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-golang" data-lang="golang"><span style="display:flex;"><span><span style="color:#66d9ef">func</span> (<span style="color:#a6e22e">sws</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">serverWatchStream</span>) <span style="color:#a6e22e">sendLoop</span>() {
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 存储active状态的watcherID
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">ids</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">map</span>[<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>]<span style="color:#66d9ef">struct</span>{})
+</span></span><span style="display:flex;"><span>	<span style="color:#75715e">// 存储那些Create响应还没到达客户端就发生了变化的watchID以及当时发生变化的event事件。目的是为了保证客户端一定先收到Create成功的响应后再收到变化的事件
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>	<span style="color:#a6e22e">pending</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">map</span>[<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>][]<span style="color:#f92672">*</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchResponse</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">interval</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">GetProgressReportInterval</span>()
+</span></span><span style="display:flex;"><span>	<span style="color:#a6e22e">progressTicker</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">time</span>.<span style="color:#a6e22e">NewTicker</span>(<span style="color:#a6e22e">interval</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">defer</span> <span style="color:#66d9ef">func</span>() {
+</span></span><span style="display:flex;"><span>		<span style="color:#a6e22e">progressTicker</span>.<span style="color:#a6e22e">Stop</span>()
+</span></span><span style="display:flex;"><span>		<span style="color:#75715e">// drain the chan to clean up pending events
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>		<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">ws</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchStream</span>.<span style="color:#a6e22e">Chan</span>() {
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">ReportEventReceived</span>(len(<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">Events</span>))
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">wrs</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">pending</span> {
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">ws</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">wrs</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">ReportEventReceived</span>(len(<span style="color:#a6e22e">ws</span>.<span style="color:#a6e22e">Events</span>))
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>	<span style="color:#66d9ef">for</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">select</span> {
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">wresp</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchStream</span>.<span style="color:#a6e22e">Chan</span>():  <span style="color:#75715e">// Chan()返回的就是所有watcher共用的watchStream.ch
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// TODO: evs is []mvccpb.Event type
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#75715e">// either return []*mvccpb.Event from the mvcc package
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#75715e">// or define protocol buffer with []mvccpb.Event.
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">evs</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">Events</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">events</span> <span style="color:#f92672">:=</span> make([]<span style="color:#f92672">*</span><span style="color:#a6e22e">mvccpb</span>.<span style="color:#a6e22e">Event</span>, len(<span style="color:#a6e22e">evs</span>))
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">RLock</span>()
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">needPrevKV</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">prevKV</span>[<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">WatchID</span>] <span style="color:#75715e">// 如果请求中需要更早的kv，则按照给定的范围查找，查出来后一并返回
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">RUnlock</span>()
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">i</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">evs</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">events</span>[<span style="color:#a6e22e">i</span>] = <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">evs</span>[<span style="color:#a6e22e">i</span>]
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">needPrevKV</span> <span style="color:#f92672">&amp;&amp;</span> !<span style="color:#a6e22e">IsCreateEvent</span>(<span style="color:#a6e22e">evs</span>[<span style="color:#a6e22e">i</span>]) {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">opt</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">RangeOptions</span>{<span style="color:#a6e22e">Rev</span>: <span style="color:#a6e22e">evs</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">Kv</span>.<span style="color:#a6e22e">ModRevision</span> <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>}
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">r</span>, <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchable</span>.<span style="color:#a6e22e">Range</span>(<span style="color:#a6e22e">context</span>.<span style="color:#a6e22e">TODO</span>(), <span style="color:#a6e22e">evs</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">Kv</span>.<span style="color:#a6e22e">Key</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">opt</span>)
+</span></span><span style="display:flex;"><span>					<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> <span style="color:#f92672">&amp;&amp;</span> len(<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">KVs</span>) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+</span></span><span style="display:flex;"><span>						<span style="color:#a6e22e">events</span>[<span style="color:#a6e22e">i</span>].<span style="color:#a6e22e">PrevKv</span> = <span style="color:#f92672">&amp;</span>(<span style="color:#a6e22e">r</span>.<span style="color:#a6e22e">KVs</span>[<span style="color:#ae81ff">0</span>])
+</span></span><span style="display:flex;"><span>					}
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">canceled</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">CompactRevision</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">wr</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&amp;</span><span style="color:#a6e22e">pb</span>.<span style="color:#a6e22e">WatchResponse</span>{
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">Header</span>:          <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">newResponseHeader</span>(<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">Revision</span>),
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">WatchId</span>:         int64(<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">WatchID</span>),
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">Events</span>:          <span style="color:#a6e22e">events</span>,
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">CompactRevision</span>: <span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">CompactRevision</span>,
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">Canceled</span>:        <span style="color:#a6e22e">canceled</span>,
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// 如果ids中没有该id，即ctrlStream还没处理完该id的Create请求时，先加入pending，等待ctrlStream处理完
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">okID</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">ids</span>[<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">WatchID</span>]; !<span style="color:#a6e22e">okID</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#75715e">// buffer if id not yet announced
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#a6e22e">wrs</span> <span style="color:#f92672">:=</span> append(<span style="color:#a6e22e">pending</span>[<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">WatchID</span>], <span style="color:#a6e22e">wr</span>)
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">pending</span>[<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">WatchID</span>] = <span style="color:#a6e22e">wrs</span>
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">ReportEventReceived</span>(len(<span style="color:#a6e22e">evs</span>))
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// 如果不需要分段传输则通过grpcStream直接返回给客户端，否则使用分段传输逻辑
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">RLock</span>()
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">fragmented</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">fragment</span>[<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">WatchID</span>]
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">RUnlock</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">serr</span> <span style="color:#66d9ef">error</span>
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">fragmented</span> <span style="color:#f92672">&amp;&amp;</span> !<span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">serr</span> = <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">gRPCStream</span>.<span style="color:#a6e22e">Send</span>(<span style="color:#a6e22e">wr</span>)
+</span></span><span style="display:flex;"><span>			} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">serr</span> = <span style="color:#a6e22e">sendFragments</span>(<span style="color:#a6e22e">wr</span>, <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">maxRequestBytes</span>, <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">gRPCStream</span>.<span style="color:#a6e22e">Send</span>)
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">serr</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">isClientCtxErr</span>(<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">gRPCStream</span>.<span style="color:#a6e22e">Context</span>().<span style="color:#a6e22e">Err</span>(), <span style="color:#a6e22e">serr</span>) {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Debug</span>(<span style="color:#e6db74">&#34;failed to send watch response to gRPC stream&#34;</span>, <span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">serr</span>))
+</span></span><span style="display:flex;"><span>				} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Warn</span>(<span style="color:#e6db74">&#34;failed to send watch response to gRPC stream&#34;</span>, <span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">serr</span>))
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">streamFailures</span>.<span style="color:#a6e22e">WithLabelValues</span>(<span style="color:#e6db74">&#34;send&#34;</span>, <span style="color:#e6db74">&#34;watch&#34;</span>).<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// 如果已经有响应回去了，那就不用下一次周期报告进展了，等待下下一次progressTicker.C到时间，会再次置为true，相当于跳过下一次
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> len(<span style="color:#a6e22e">evs</span>) &gt; <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">progress</span>[<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">WatchID</span>] {
+</span></span><span style="display:flex;"><span>				<span style="color:#75715e">// elide next progress update if sent a key update
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">progress</span>[<span style="color:#a6e22e">wresp</span>.<span style="color:#a6e22e">WatchID</span>] = <span style="color:#66d9ef">false</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">ctrlStream</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// 控制命令的响应，直接返回即可
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">gRPCStream</span>.<span style="color:#a6e22e">Send</span>(<span style="color:#a6e22e">c</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">isClientCtxErr</span>(<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">gRPCStream</span>.<span style="color:#a6e22e">Context</span>().<span style="color:#a6e22e">Err</span>(), <span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Debug</span>(<span style="color:#e6db74">&#34;failed to send watch control response to gRPC stream&#34;</span>, <span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">err</span>))
+</span></span><span style="display:flex;"><span>				} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Warn</span>(<span style="color:#e6db74">&#34;failed to send watch control response to gRPC stream&#34;</span>, <span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">err</span>))
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">streamFailures</span>.<span style="color:#a6e22e">WithLabelValues</span>(<span style="color:#e6db74">&#34;send&#34;</span>, <span style="color:#e6db74">&#34;watch&#34;</span>).<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// track id creation
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">wid</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">WatchID</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">WatchId</span>)
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// 如果是Cancel，则从ids中删除掉
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Canceled</span> {
+</span></span><span style="display:flex;"><span>				delete(<span style="color:#a6e22e">ids</span>, <span style="color:#a6e22e">wid</span>)
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">continue</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#75715e">// 如果是Create类型，则需要把pending中的内容返回给客户端并将其id置为active，同时从pending中删掉
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">Created</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#75715e">// flush buffered events
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>				<span style="color:#a6e22e">ids</span>[<span style="color:#a6e22e">wid</span>] = <span style="color:#66d9ef">struct</span>{}{}
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">_</span>, <span style="color:#a6e22e">v</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">pending</span>[<span style="color:#a6e22e">wid</span>] {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">mvcc</span>.<span style="color:#a6e22e">ReportEventReceived</span>(len(<span style="color:#a6e22e">v</span>.<span style="color:#a6e22e">Events</span>))
+</span></span><span style="display:flex;"><span>					<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">err</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">gRPCStream</span>.<span style="color:#a6e22e">Send</span>(<span style="color:#a6e22e">v</span>); <span style="color:#a6e22e">err</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+</span></span><span style="display:flex;"><span>						<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">isClientCtxErr</span>(<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">gRPCStream</span>.<span style="color:#a6e22e">Context</span>().<span style="color:#a6e22e">Err</span>(), <span style="color:#a6e22e">err</span>) {
+</span></span><span style="display:flex;"><span>							<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Debug</span>(<span style="color:#e6db74">&#34;failed to send pending watch response to gRPC stream&#34;</span>, <span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">err</span>))
+</span></span><span style="display:flex;"><span>						} <span style="color:#66d9ef">else</span> {
+</span></span><span style="display:flex;"><span>							<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">lg</span>.<span style="color:#a6e22e">Warn</span>(<span style="color:#e6db74">&#34;failed to send pending watch response to gRPC stream&#34;</span>, <span style="color:#a6e22e">zap</span>.<span style="color:#a6e22e">Error</span>(<span style="color:#a6e22e">err</span>))
+</span></span><span style="display:flex;"><span>							<span style="color:#a6e22e">streamFailures</span>.<span style="color:#a6e22e">WithLabelValues</span>(<span style="color:#e6db74">&#34;send&#34;</span>, <span style="color:#e6db74">&#34;watch&#34;</span>).<span style="color:#a6e22e">Inc</span>()
+</span></span><span style="display:flex;"><span>						}
+</span></span><span style="display:flex;"><span>						<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>					}
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				delete(<span style="color:#a6e22e">pending</span>, <span style="color:#a6e22e">wid</span>)
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>	
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">progressTicker</span>.<span style="color:#a6e22e">C</span>:  <span style="color:#75715e">// 周期报告进度
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>			<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Lock</span>()
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">for</span> <span style="color:#a6e22e">id</span>, <span style="color:#a6e22e">ok</span> <span style="color:#f92672">:=</span> <span style="color:#66d9ef">range</span> <span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">progress</span> {
+</span></span><span style="display:flex;"><span>				<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ok</span> {
+</span></span><span style="display:flex;"><span>					<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">watchStream</span>.<span style="color:#a6e22e">RequestProgress</span>(<span style="color:#a6e22e">id</span>)
+</span></span><span style="display:flex;"><span>				}
+</span></span><span style="display:flex;"><span>				<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">progress</span>[<span style="color:#a6e22e">id</span>] = <span style="color:#66d9ef">true</span>
+</span></span><span style="display:flex;"><span>			}
+</span></span><span style="display:flex;"><span>			<span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">mu</span>.<span style="color:#a6e22e">Unlock</span>()
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>		<span style="color:#66d9ef">case</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">sws</span>.<span style="color:#a6e22e">closec</span>:
+</span></span><span style="display:flex;"><span>			<span style="color:#66d9ef">return</span>
+</span></span><span style="display:flex;"><span>		}
+</span></span><span style="display:flex;"><span>	}
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><hr>
+<h1 id="总结">总结</h1>
+<p>put和watch之间通过watchableStore建立联系，其内部的synced记录了所有已同步的watcher，双方通过该map表共享数据，并通过watcher下的chan进行数据通信。<br>
+put操作本身代码逻辑就已经相当复杂了，各种chan通信用的十分巧妙值得学习参考，这样一比较与watch的交互只是其中很小一部分了。<br>
+这一次也只是理清代码的流向，其中还有很多细节与功能没有涉及到，后续继续学习。</p>
+<ul class="pa0">
+  
+   <li class="list di">
+     <a href="/tags/etcd/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">Etcd</a>
+   </li>
+  
+   <li class="list di">
+     <a href="/tags/%E6%BA%90%E7%A0%81/" class="link f5 grow no-underline br-pill ba ph3 pv2 mb2 dib black sans-serif">源码</a>
+   </li>
+  
+</ul>
+<div class="mt6 instapaper_ignoref">
+      
+      
+      </div>
+    </div>
+
+    <aside class="w-30-l mt6-l">
+
+
+
+
+  <div class="bg-light-gray pa3 nested-list-reset nested-copy-line-height nested-links">
+    <p class="f5 b mb3">Related</p>
+    <ul class="pa0 list">
+	   
+	     <li  class="mb2">
+          <a href="/posts/etcd_1/">(一)etcd记录-兼容http方式的grpc</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-map/">golang官方包源码阅读记录 sync.Map</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-cond-once/">golang官方包源码阅读记录 sync.Cond和sync.Once</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-rwmutex/">golang官方包源码阅读记录 sync.RWMutex</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-waitgroup/">golang官方包源码阅读记录 sync.WaitGroup</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/github-got/">github.com/melbahja/got 号称比wget和curl更快的下载工具</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-mutex/">golang官方包源码阅读记录 sync.Mutex</a>
+        </li>
+	    
+	     <li  class="mb2">
+          <a href="/posts/sync-pool/">golang官方包源码阅读记录 sync.Pool</a>
+        </li>
+	    
+    </ul>
+</div>
+
+</aside>
+
+  </article>
+
+    </main>
+    <footer class="bg-black bottom-0 w-100 pa3" role="contentinfo">
+  <div class="flex justify-between">
+  <a class="f4 fw4 hover-white no-underline white-70 dn dib-ns pv2 ph3" href="https://example.org/" >
+    &copy;  My New Hugo Site 2025 
+  </a>
+    <div>
+<div class="ananke-socials">
+  
+</div>
+</div>
+  </div>
+</footer>
+
+  </body>
+</html>
